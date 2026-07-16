@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/cpr-logo.png";
 import { categoryImage, courseImageWithFallback, siteImages } from "@/lib/course-images";
 import { categoriesQuery, publishedCoursesQuery, publishedPostsQuery, teachersQuery } from "@/lib/queries";
+import { COMPANY_CONTACTS } from "@/lib/company";
 
 
 export const Route = createFileRoute("/")({
@@ -43,10 +44,10 @@ export const Route = createFileRoute("/")({
           alternateName: "ЦПР Партнер",
           url: "/",
           telephone: "+7-800-500-70-16",
-          email: "info@cpr-partner.ru",
+          email: COMPANY_CONTACTS.email,
           address: {
             "@type": "PostalAddress",
-            streetAddress: "ул. Кутузова, д. 1, стр. 37, оф. 210",
+            streetAddress: "ул. Кутузова, д. 1, стр. 37, оф. 2-10",
             addressLocality: "Красноярск",
             postalCode: "660049",
             addressCountry: "RU",

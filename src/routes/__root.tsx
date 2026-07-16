@@ -105,11 +105,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Курсы и удостоверения по охране труда, рабочим профессиям и спецтехнике.",
       },
       { name: "twitter:image", content: logoAsset },
-      { name: "theme-color", content: "#0F766E" },
+      { name: "theme-color", content: "#087f9f" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: logoAsset },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "apple-touch-icon", href: logoAsset },
     ],
   }),

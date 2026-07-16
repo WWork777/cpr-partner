@@ -1,18 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RegionPage } from "@/components/site/RegionPage";
 import { publishedCoursesQuery } from "@/lib/queries";
+import { COMPANY_CONTACTS } from "@/lib/company";
 
 const CITY = {
   city: "Красноярск",
-  address: "ул. Кутузова, д. 1, стр. 37, оф. 210",
-  phone: "+7 (391) 219-09-99",
+  address: "ул. Кутузова, д. 1, стр. 37, оф. 2-10",
+  phone: COMPANY_CONTACTS.phone,
 };
 
 export const Route = createFileRoute("/krasnoyarsk")({
   head: () => ({
     meta: [
       { title: "Учебный центр в Красноярске — курсы, охрана труда | ЦПР Партнер" },
-      { name: "description", content: "ЦПР Партнер в Красноярске: курсы по охране труда, электробезопасности, рабочим профессиям и спецтехнике. Очно и дистанционно." },
+      { name: "description", content: "ЦПР Партнер в Красноярске: обучение на самоходную технику, охрана труда, электробезопасность и рабочие профессии. Очно и дистанционно." },
       { property: "og:title", content: "Учебный центр ЦПР Партнер — Красноярск" },
       { property: "og:url", content: "/krasnoyarsk" },
     ],

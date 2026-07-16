@@ -128,6 +128,7 @@ function DirectionPage() {
   const { data: courses } = useSuspenseQuery(directionCoursesQuery(slug));
   const faqs = pickFaqQueries(dir).slice(0, 8);
   const midQueries = dir.queries.filter((q) => q.t === "СЧ").slice(0, 12);
+  const studyCities = slug === "traktorist-mashinist" ? "Красноярске, Томске и Кемерово" : "Красноярске и Томске";
 
   return (
     <SiteLayout>
@@ -212,7 +213,7 @@ function DirectionPage() {
               Программа выстроена так, чтобы слушатель сразу мог применять знания на рабочем месте.
             </p>
             <p>
-              Обучение доступно очно в собственных учебных классах в Красноярске и Томске,
+              Обучение доступно очно в собственных учебных классах в {studyCities},
               выездом на территорию заказчика и дистанционно на платформе{" "}
               <a href="http://online.cpr-partner.ru/" className="text-primary hover:underline" target="_blank" rel="noreferrer">
                 online.cpr-partner.ru
@@ -236,7 +237,7 @@ function DirectionPage() {
                 </summary>
                 <p className="mt-3 text-sm text-foreground/80 leading-relaxed">
                   {seo.lead} По окончании выдаём документы установленного образца.
-                  Доступно очное обучение в Красноярске и Томске, выездом и дистанционно — по всей России.
+                  Доступно очное обучение в {studyCities}, выездом и дистанционно — по всей России.
                   Стоимость и сроки уточняйте по телефону{" "}
                   <a href="tel:+78005007016" className="text-primary">8 (800) 500-70-16</a>.
                 </p>

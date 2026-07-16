@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { COMPANY_CONTACTS } from "@/lib/company";
 
 export const Route = createFileRoute("/sveden")({
   component: SvedenPage,
@@ -61,11 +62,11 @@ function SvedenPage() {
               <Row k="Сокращённое наименование">ООО ЦПР «Партнёр»</Row>
               <Row k="Дата создания">2009 год</Row>
               <Row k="Учредитель">Физические лица</Row>
-              <Row k="Юридический адрес">660049, Россия, г. Красноярск, ул. Кутузова, д. 1, строение 37, оф. 210</Row>
-              <Row k="Филиал">г. Томск, ул. Ленина, д. 190, строение 2, пом. 25</Row>
+              <Row k="Юридический адрес">{COMPANY_CONTACTS.krasnoyarskAddress}</Row>
+              <Row k="Филиал">{COMPANY_CONTACTS.tomskAddress}</Row>
               <Row k="Режим работы">Пн–Пт: 9:00–18:00 (по местному времени)</Row>
-              <Row k="Телефон">8 (800) 500-70-16, 8 (391) 278-65-05</Row>
-              <Row k="E-mail">info@cpr-partner.ru</Row>
+              <Row k="Телефон">{COMPANY_CONTACTS.phone}</Row>
+              <Row k="E-mail">{COMPANY_CONTACTS.email}</Row>
               <Row k="География работы">Обучение проводится по всей России (очно, выездом и дистанционно)</Row>
             </Block>
 
@@ -96,7 +97,7 @@ function SvedenPage() {
                 </li>
               </ul>
               <p className="text-sm text-muted-foreground mt-3">
-                Сканы документов и копии лицензии предоставляются по запросу на info@cpr-partner.ru.
+                Сканы документов и копии лицензии предоставляются по запросу на {COMPANY_CONTACTS.email}.
               </p>
             </Block>
 

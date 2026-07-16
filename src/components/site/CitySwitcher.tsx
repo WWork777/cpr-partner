@@ -10,8 +10,8 @@ export type City = {
 };
 
 export const CITIES: City[] = [
-  { slug: "krasnoyarsk", name: "Красноярск", phone: "+7 (391) 222-22-87", to: "/krasnoyarsk" },
-  { slug: "tomsk", name: "Томск", phone: "+7 (3822) 902-887", to: "/tomsk" },
+  { slug: "krasnoyarsk", name: "Красноярск", phone: "8 (800) 500-70-16", to: "/krasnoyarsk" },
+  { slug: "tomsk", name: "Томск", phone: "8 (800) 500-70-16", to: "/tomsk" },
   { slug: "kemerovo", name: "Кемерово", phone: "8 (800) 500-70-16", to: "/kemerovo" },
 ];
 

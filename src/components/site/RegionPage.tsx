@@ -55,6 +55,21 @@ export function RegionPage({
           </span>
         </div>
 
+        <div className="mt-8 rounded-2xl border border-primary/20 bg-primary-soft p-5 md:p-6">
+          <h2 className="text-xl font-bold">Обучение на самоходную технику в {declinedCity}</h2>
+          <p className="mt-2 max-w-3xl text-sm text-foreground/80">
+            Подготовка трактористов-машинистов, водителей погрузчиков и машинистов экскаваторов:
+            теория, практика, экзамен и документы для Гостехнадзора.
+          </p>
+          <Link
+            to="/napravleniya/$slug"
+            params={{ slug: "traktorist-mashinist" }}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          >
+            Подробнее о направлении <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
         <h2 className="mt-12 text-2xl font-bold">
           {filterCourses ? `Курсы — ${city}` : `Популярные курсы — ${city}`}
         </h2>

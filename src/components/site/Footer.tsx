@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Phone, Mail, MapPin } from "lucide-react";
 import logoAsset from "@/assets/cpr-logo.png";
+import { COMPANY_CONTACTS } from "@/lib/company";
 
 export function Footer() {
   return (
@@ -43,23 +44,23 @@ export function Footer() {
         <div>
           <div className="text-sm font-semibold mb-3">Красноярск</div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> ул. Кутузова 1, оф. 210</li>
-            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href="tel:+73912152070" className="hover:text-primary">+7 (391) 215-20-70</a></li>
-            <li className="flex items-start gap-2"><Mail className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href="mailto:info@cpr-partner.ru" className="hover:text-primary">info@cpr-partner.ru</a></li>
+            <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> ул. Кутузова 1, стр. 37, оф. 2-10</li>
+            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href={`tel:${COMPANY_CONTACTS.phoneHref}`} className="hover:text-primary">{COMPANY_CONTACTS.phone}</a></li>
+            <li className="flex items-start gap-2"><Mail className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href={`mailto:${COMPANY_CONTACTS.email}`} className="hover:text-primary">{COMPANY_CONTACTS.email}</a></li>
           </ul>
         </div>
 
         <div>
           <div className="text-sm font-semibold mb-3">Томск</div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> пр. Фрунзе 25, оф. 33</li>
-            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href="tel:+73822333070" className="hover:text-primary">+7 (3822) 33-30-70</a></li>
+            <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> ул. Ленина 190, стр. 2, пом. 25</li>
+            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href={`tel:${COMPANY_CONTACTS.phoneHref}`} className="hover:text-primary">{COMPANY_CONTACTS.phone}</a></li>
           </ul>
 
           <div className="text-sm font-semibold mt-6 mb-3">Кемерово</div>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/kemerovo" className="hover:text-primary">Операторы БПЛА</Link></li>
-            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href="tel:+73912190999" className="hover:text-primary">+7 (391) 219-09-99</a></li>
+            <li><Link to="/kemerovo" className="hover:text-primary">Самоходная техника</Link></li>
+            <li className="flex items-start gap-2"><Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" /><a href={`tel:${COMPANY_CONTACTS.phoneHref}`} className="hover:text-primary">{COMPANY_CONTACTS.phone}</a></li>
           </ul>
         </div>
       </div>

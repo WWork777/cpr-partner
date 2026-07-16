@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone, Mail, MapPin, Clock, Building2, Download, FileText } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ApplicationForm } from "@/components/site/ApplicationForm";
+import { COMPANY_CONTACTS } from "@/lib/company";
 
 export const Route = createFileRoute("/contacts")({
   head: () => ({
@@ -10,11 +11,11 @@ export const Route = createFileRoute("/contacts")({
       {
         name: "description",
         content:
-          "Контакты учебного центра ООО ЦПР «Партнер»: Красноярск, ул. Кутузова 1 стр. 37 оф. 210; Томский филиал — ул. Ленина 190 стр. 2 пом. 25. Тел. 8 (391) 278-65-05, info@cpr-partner.ru. Корпоративное обучение с выездом в регион.",
+          `Контакты учебного центра ООО ЦПР «Партнер»: ${COMPANY_CONTACTS.krasnoyarskAddress}; Томский филиал — ${COMPANY_CONTACTS.tomskAddress}. Тел. ${COMPANY_CONTACTS.phone}, ${COMPANY_CONTACTS.email}. Корпоративное обучение с выездом в регион.`,
       },
       { name: "keywords", content: "ЦПР Партнер контакты, учебный центр Красноярск, учебный центр Томск, обучение с выездом, корпоративное обучение, охрана труда Красноярск" },
       { property: "og:title", content: "Контакты ООО ЦПР «Партнер» — Красноярск и Томск" },
-      { property: "og:description", content: "Адреса офисов в Красноярске и Томске, телефон 8 (391) 278-65-05, e-mail info@cpr-partner.ru. Корпоративное обучение с выездом." },
+      { property: "og:description", content: `Адреса офисов в Красноярске и Томске, телефон ${COMPANY_CONTACTS.phone}, e-mail ${COMPANY_CONTACTS.email}. Корпоративное обучение с выездом.` },
       { property: "og:url", content: "/contacts" },
       { property: "og:type", content: "website" },
     ],
@@ -26,13 +27,13 @@ export const Route = createFileRoute("/contacts")({
           "@context": "https://schema.org",
           "@type": "EducationalOrganization",
           name: "ООО ЦПР «Партнер»",
-          email: "info@cpr-partner.ru",
-          telephone: "+7-391-278-65-05",
+          email: COMPANY_CONTACTS.email,
+          telephone: COMPANY_CONTACTS.phoneHref,
           url: "/",
           address: [
             {
               "@type": "PostalAddress",
-              streetAddress: "ул. Кутузова 1, строение 37, оф. 210",
+              streetAddress: "ул. Кутузова 1, строение 37, оф. 2-10",
               addressLocality: "Красноярск",
               postalCode: "660049",
               addressCountry: "RU",
@@ -66,21 +67,20 @@ function ContactsPage() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickCard icon={<Phone className="h-5 w-5" />} label="Телефон" value="8 (391) 278-65-05" href="tel:+73912786505" />
-          <QuickCard icon={<Phone className="h-5 w-5" />} label="Бесплатно по РФ" value="8 (800) 500-70-16" href="tel:+78005007016" />
-          <QuickCard icon={<Mail className="h-5 w-5" />} label="Email" value="info@cpr-partner.ru" href="mailto:info@cpr-partner.ru" />
+          <QuickCard icon={<Phone className="h-5 w-5" />} label="Телефон" value={COMPANY_CONTACTS.phone} href={`tel:${COMPANY_CONTACTS.phoneHref}`} />
+          <QuickCard icon={<Mail className="h-5 w-5" />} label="Email" value={COMPANY_CONTACTS.email} href={`mailto:${COMPANY_CONTACTS.email}`} />
           <QuickCard icon={<Clock className="h-5 w-5" />} label="Часы работы" value="Пн–Пт 9:00–18:00" />
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <OfficeCard
             title="Головной офис — Красноярск"
-            address="660049, Россия, г. Красноярск, ул. Кутузова 1, строение 37, оф. 210"
+            address={COMPANY_CONTACTS.krasnoyarskAddress}
             coords={[92.879437, 56.009496]}
           />
           <OfficeCard
             title="Томский филиал"
-            address="г. Томск, ул. Ленина 190, строение 2, пом. 25"
+            address={COMPANY_CONTACTS.tomskAddress}
             coords={[84.948197, 56.484680]}
           />
         </div>
@@ -101,7 +101,7 @@ function ContactsPage() {
             </ul>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href="mailto:info@cpr-partner.ru?subject=Каталог курсов"
+                href={`mailto:${COMPANY_CONTACTS.email}?subject=Каталог курсов`}
                 className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft/70"
               >
                 <Download className="h-4 w-4" /> Запросить каталог курсов
@@ -131,9 +131,9 @@ function ContactsPage() {
           <dl className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2 text-sm">
             <Row k="Полное наименование" v="Общество с ограниченной ответственностью «Центр Профессионального Развития «Партнер»" />
             <Row k="Сокращённое" v="ООО ЦПР «Партнер»" />
-            <Row k="Юр. адрес" v="660049, г. Красноярск, ул. Кутузова 1, стр. 37, оф. 210" />
-            <Row k="Email" v="info@cpr-partner.ru" />
-            <Row k="Телефон" v="8 (391) 278-65-05" />
+            <Row k="Юр. адрес" v={COMPANY_CONTACTS.krasnoyarskAddress} />
+            <Row k="Email" v={COMPANY_CONTACTS.email} />
+            <Row k="Телефон" v={COMPANY_CONTACTS.phone} />
             <Row k="Сайт" v="cpr-partner.ru" />
           </dl>
           <p className="mt-4 text-xs text-muted-foreground">

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>ЦПР Партнер</title>
+  <rect width="64" height="64" rx="14" fill="#087f9f"/>
+  <path d="M14 42.5V20h7.2v12.7L32 20h8.2L28.6 33.2 41 42.5h-9.1l-10.7-8.3v8.3z" fill="#fff"/>
+  <path d="M42 20h8v22.5h-8z" fill="#8ee4e5"/>
+  <circle cx="46" cy="15" r="4" fill="#8ee4e5"/>
+</svg>
