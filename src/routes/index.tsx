@@ -97,9 +97,7 @@ function HomePage() {
         <div
           className="relative overflow-hidden rounded-3xl shadow-card min-h-[420px] md:min-h-[520px] flex flex-col justify-end"
           style={{
-            backgroundImage: featured?.image_url
-              ? `linear-gradient(90deg, rgba(8,20,35,0.88) 0%, rgba(8,20,35,0.62) 55%, rgba(8,20,35,0.24) 100%), url(${featured.image_url}), url(${siteImages.trainingHero})`
-              : `linear-gradient(90deg, rgba(8,20,35,0.88) 0%, rgba(8,20,35,0.62) 55%, rgba(8,20,35,0.24) 100%), url(${siteImages.trainingHero})`,
+            backgroundImage: `linear-gradient(90deg, rgba(8,20,35,0.88) 0%, rgba(8,20,35,0.62) 55%, rgba(8,20,35,0.24) 100%), url(${siteImages.machineryTraining})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -139,24 +137,14 @@ function HomePage() {
             </div>
           </div>
 
-          {featured && (
-            <div className="px-6 pb-6 md:px-12 md:pb-10 lg:px-16 lg:pb-12">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <StatPill icon={<CalendarDays className="h-4 w-4" />} label="Старт" value={featured.start_date || "Ежедневно"} />
-                <StatPill icon={<Clock className="h-4 w-4" />} label="Длительность" value={featured.duration || "—"} />
-                <StatPill
-                  icon={<MapPin className="h-4 w-4" />}
-                  label="Формат"
-                  value={[featured.format, featured.city].filter(Boolean).join(" • ")}
-                />
-                <StatPill
-                  icon={<Wallet className="h-4 w-4" />}
-                  label="Стоимость"
-                  value={featured.price ? `${Number(featured.price).toLocaleString("ru-RU")} ₽` : "По запросу"}
-                />
-              </div>
+          <div className="px-6 pb-6 md:px-12 md:pb-10 lg:px-16 lg:pb-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <StatPill icon={<CalendarDays className="h-4 w-4" />} label="Старт" value="Ежедневно" />
+              <StatPill icon={<Clock className="h-4 w-4" />} label="Длительность" value="от 16 часов" />
+              <StatPill icon={<MapPin className="h-4 w-4" />} label="Формат" value="Очно, дистанционно" />
+              <StatPill icon={<Wallet className="h-4 w-4" />} label="Стоимость" value="от 500 ₽" />
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -165,7 +153,7 @@ function HomePage() {
       <section className="mx-auto max-w-7xl px-4 lg:px-8 -mt-2 mb-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { v: "15+ лет", l: "на рынке доп. образования" },
+            { v: "17+ лет", l: "на рынке доп. образования" },
             { v: "50 000+", l: "выданных удостоверений" },
             { v: "200+", l: "программ обучения" },
             { v: "ФИС ФРДО", l: "все документы в реестре" },

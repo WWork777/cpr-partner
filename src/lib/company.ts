@@ -1,5 +1,5 @@
 export const COMPANY_CONTACTS = {
-  email: "cpr-partner-krsk@yandex.ru",
+  email: "info@cpr-partner.ru",
   phone: "8 (800) 500-70-16",
   phoneHref: "+78005007016",
   krasnoyarskAddress: "660049, Россия, г. Красноярск, ул. Кутузова 1, строение 37, оф. 2-10",
