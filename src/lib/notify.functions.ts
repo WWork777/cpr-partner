@@ -76,23 +76,13 @@ async function getNotificationSettings(): Promise<NotifySettings> {
     recipient: envRecipient,
   };
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return fallback;
-
   try {
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } },
+    const { queryDatabase } = await import("@/lib/local-db.server");
+    const result = await queryDatabase<{ value: NotifySettings }>(
+      "SELECT value FROM app_settings WHERE key = $1 LIMIT 1",
+      ["notifications"],
     );
-    const { data: row } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "notifications")
-      .maybeSingle();
-    const value = (row?.value ?? {}) as NotifySettings;
+    const value = result.rows[0]?.value ?? {};
     if (value.enabled === false) return { enabled: false, recipient: "" };
     return {
       enabled: value.enabled ?? true,

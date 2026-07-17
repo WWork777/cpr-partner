@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useMemo } from "react";
 import { Plus, Trash2, Save, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,9 @@ type Row = {
   year: number;
   quarter: number;
   topic: string;
+  sets: string[];
+  dates_text?: string | null;
+  time_text?: string | null;
   month1_text: string | null;
   month2_text: string | null;
   month3_text: string | null;
@@ -27,12 +30,9 @@ type Row = {
   is_published: boolean;
 };
 
-const Q_MONTHS: Record<number, [string, string, string]> = {
-  1: ["январь", "февраль", "март"],
-  2: ["апрель", "май", "июнь"],
-  3: ["июль", "август", "сентябрь"],
-  4: ["октябрь", "ноябрь", "декабрь"],
-};
+type SortMode = "order" | "alpha" | "date" | "published";
+
+const MIN_SET_COUNT = 3;
 
 function SiteScheduleAdmin() {
   const qc = useQueryClient();
@@ -43,15 +43,34 @@ function SiteScheduleAdmin() {
   const [filterCity, setFilterCity] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<number | "all">("all");
   const [filterQuarter, setFilterQuarter] = useState<number | "all">("all");
+  const [sortMode, setSortMode] = useState<SortMode>("order");
 
   const cities = useMemo(() => Array.from(new Set((data ?? []).map((r) => r.city))), [data]);
   const years = useMemo(() => Array.from(new Set((data ?? []).map((r) => r.year))).sort(), [data]);
 
-  const shown = (data ?? []).filter((r) =>
+  const filtered = useMemo(() => (data ?? []).filter((r) =>
     (filterCity === "all" || r.city === filterCity) &&
     (filterYear === "all" || r.year === filterYear) &&
     (filterQuarter === "all" || r.quarter === filterQuarter),
-  );
+  ), [data, filterCity, filterYear, filterQuarter]);
+
+  const shown = useMemo(() => [...filtered].sort((a, b) => {
+    if (sortMode === "alpha") {
+      const byTopic = a.topic.localeCompare(b.topic, "ru", { sensitivity: "base" });
+      if (byTopic !== 0) return byTopic;
+    }
+    if (sortMode === "date") {
+      const aDate = getLaunchDate(a);
+      const bDate = getLaunchDate(b);
+      if (aDate === null && bDate !== null) return 1;
+      if (aDate !== null && bDate === null) return -1;
+      if (aDate !== null && bDate !== null && aDate !== bDate) return aDate - bDate;
+    }
+    if (sortMode === "published" && a.is_published !== b.is_published) {
+      return a.is_published ? -1 : 1;
+    }
+    return a.sort_order - b.sort_order || a.topic.localeCompare(b.topic, "ru", { sensitivity: "base" });
+  }), [filtered, sortMode]);
 
   async function save(row: Partial<Row>) {
     if (!row.topic?.trim()) return toast.error("Название программы обязательно");
@@ -60,6 +79,7 @@ function SiteScheduleAdmin() {
       year: Number(row.year ?? new Date().getFullYear()),
       quarter: Number(row.quarter ?? 1),
       topic: row.topic.trim(),
+      sets: getSets(row).map((value) => value.trim()),
       month1_text: row.month1_text || null,
       month2_text: row.month2_text || null,
       month3_text: row.month3_text || null,
@@ -67,8 +87,8 @@ function SiteScheduleAdmin() {
       is_published: row.is_published ?? true,
     };
     const { error } = row.id
-      ? await supabase.from("public_schedule").update(payload).eq("id", row.id)
-      : await supabase.from("public_schedule").insert(payload);
+      ? await db.from("public_schedule").update(payload).eq("id", row.id)
+      : await db.from("public_schedule").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Сохранено");
     setDraft(null);
@@ -78,7 +98,7 @@ function SiteScheduleAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить строку расписания?")) return;
-    const { error } = await supabase.from("public_schedule").delete().eq("id", id);
+    const { error } = await db.from("public_schedule").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "public_schedule"] });
     qc.invalidateQueries({ queryKey: ["public_schedule"] });
@@ -112,28 +132,31 @@ function SiteScheduleAdmin() {
             if (qm[2]) currentYearVal = Number(qm[2]);
             continue;
           }
+          if (/^набор\s+\d+/i.test(joined)) continue;
           currentCity = filled[0];
           continue;
         }
         // Skip header row
-        if (joined.startsWith("название") || joined.includes("сроки обучения")) continue;
-        if (Object.values(Q_MONTHS).flat().some((m) => joined.startsWith(m))) continue;
+        if (joined.startsWith("название") || joined.includes("сроки обучения") || joined.includes("набор 1")) continue;
         const topic = cells[0];
         if (!topic) continue;
+        const sets = cells.slice(1);
+        while (sets.length < MIN_SET_COUNT) sets.push("");
         payload.push({
           city: currentCity,
           year: currentYearVal,
           quarter: currentQuarter,
           topic,
-          month1_text: cells[1] || null,
-          month2_text: cells[2] || null,
-          month3_text: cells[3] || null,
+          sets,
+          month1_text: null,
+          month2_text: null,
+          month3_text: null,
           sort_order: (sort += 10),
           is_published: true,
         });
       }
       if (!payload.length) return toast.error("Не распознано ни одной строки");
-      const { error } = await supabase.from("public_schedule").insert(payload);
+      const { error } = await db.from("public_schedule").insert(payload);
       if (error) return toast.error(error.message);
       toast.success(`Импортировано: ${payload.length}`);
       qc.invalidateQueries({ queryKey: ["admin", "public_schedule"] });
@@ -145,7 +168,8 @@ function SiteScheduleAdmin() {
     }
   }
 
-  const dMonths = Q_MONTHS[Number(draft?.quarter ?? 1)] ?? Q_MONTHS[1];
+  const draftSets = getSets(draft);
+  const maxSets = Math.max(MIN_SET_COUNT, ...shown.map((row) => getSets(row).length));
 
   return (
     <div>
@@ -153,7 +177,7 @@ function SiteScheduleAdmin() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">График обучения</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Матрица «программа × месяцы квартала» — отображается на странице <code>/raspisanie</code>.
+            Матрица «программа × наборы» — отображается на странице <code>/raspisanie</code>.
           </p>
         </div>
         <div className="flex gap-2">
@@ -162,7 +186,7 @@ function SiteScheduleAdmin() {
             <Upload className="h-4 w-4 mr-1" /> Импорт Excel
           </Button>
           <Button
-            onClick={() => setDraft({ city: cities[0] ?? "Красноярск", year: new Date().getFullYear(), quarter: 1, topic: "", sort_order: (data?.length ?? 0) * 10 + 10, is_published: true })}
+            onClick={() => setDraft({ city: cities[0] ?? "Красноярск", year: new Date().getFullYear(), quarter: 1, topic: "", sets: Array(MIN_SET_COUNT).fill(""), sort_order: (data?.length ?? 0) * 10 + 10, is_published: true })}
             className="rounded-full bg-gradient-teal"
           >
             <Plus className="h-4 w-4" /> Добавить программу
@@ -183,6 +207,12 @@ function SiteScheduleAdmin() {
           <option value="all">Все кварталы</option>
           {[1, 2, 3, 4].map((q) => <option key={q} value={q}>{["I","II","III","IV"][q-1]} квартал</option>)}
         </select>
+        <select aria-label="Сортировка расписания" value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="h-9 rounded-md border border-border bg-background px-3 text-sm">
+          <option value="order">Сортировка: по порядку</option>
+          <option value="alpha">Сортировка: по алфавиту</option>
+          <option value="date">Сортировка: по дате запуска</option>
+          <option value="published">Сортировка: опубликованные сначала</option>
+        </select>
       </div>
 
       {draft && (
@@ -197,9 +227,34 @@ function SiteScheduleAdmin() {
           </div>
           <div className="md:col-span-2"><Label>Порядок</Label><Input type="number" value={draft.sort_order ?? 0} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} /></div>
           <div className="md:col-span-6"><Label>Название программы *</Label><Input value={draft.topic ?? ""} onChange={(e) => setDraft({ ...draft, topic: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label>{cap(dMonths[0])}</Label><Input value={draft.month1_text ?? ""} onChange={(e) => setDraft({ ...draft, month1_text: e.target.value })} placeholder="19 января" /></div>
-          <div className="md:col-span-2"><Label>{cap(dMonths[1])}</Label><Input value={draft.month2_text ?? ""} onChange={(e) => setDraft({ ...draft, month2_text: e.target.value })} placeholder="16 февраля" /></div>
-          <div className="md:col-span-2"><Label>{cap(dMonths[2])}</Label><Input value={draft.month3_text ?? ""} onChange={(e) => setDraft({ ...draft, month3_text: e.target.value })} placeholder="16 марта" /></div>
+          <div className="md:col-span-6 grid gap-3 md:grid-cols-6">
+            {draftSets.map((value, index) => (
+              <div key={index} className="md:col-span-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Набор {index + 1}</Label>
+                  {index >= MIN_SET_COUNT && (
+                    <button
+                      type="button"
+                      onClick={() => setDraft({ ...draft, sets: draftSets.filter((_, setIndex) => setIndex !== index) })}
+                      className="text-xs text-destructive hover:underline"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+                <Input
+                  value={value}
+                  onChange={(e) => setDraft({ ...draft, sets: draftSets.map((setValue, setIndex) => setIndex === index ? e.target.value : setValue) })}
+                  placeholder="Дата или условия набора"
+                />
+              </div>
+            ))}
+            <div className="md:col-span-6">
+              <Button type="button" variant="outline" onClick={() => setDraft({ ...draft, sets: [...draftSets, ""] })} className="rounded-full">
+                <Plus className="h-4 w-4" /> Добавить набор
+              </Button>
+            </div>
+          </div>
           <div className="md:col-span-6 flex items-center gap-4">
             <label className="inline-flex items-center gap-2 text-sm">
               <input type="checkbox" checked={draft.is_published ?? true} onChange={(e) => setDraft({ ...draft, is_published: e.target.checked })} className="h-4 w-4 accent-primary" />
@@ -221,9 +276,7 @@ function SiteScheduleAdmin() {
               <th className="text-left p-3">Год</th>
               <th className="text-left p-3">Кв.</th>
               <th className="text-left p-3">Программа</th>
-              <th className="text-left p-3">М1</th>
-              <th className="text-left p-3">М2</th>
-              <th className="text-left p-3">М3</th>
+              {Array.from({ length: maxSets }, (_, index) => <th key={index} className="text-left p-3">Набор {index + 1}</th>)}
               <th className="text-left p-3">Публ.</th>
               <th></th>
             </tr>
@@ -235,9 +288,7 @@ function SiteScheduleAdmin() {
                 <td className="p-3">{r.year}</td>
                 <td className="p-3">{["I","II","III","IV"][r.quarter-1]}</td>
                 <td className="p-3 font-medium">{r.topic}</td>
-                <td className="p-3">{r.month1_text ?? "—"}</td>
-                <td className="p-3">{r.month2_text ?? "—"}</td>
-                <td className="p-3">{r.month3_text ?? "—"}</td>
+                {Array.from({ length: maxSets }, (_, index) => <td key={index} className="p-3">{getSets(r)[index] || "—"}</td>)}
                 <td className="p-3">{r.is_published ? "✓" : "—"}</td>
                 <td className="p-3 text-right whitespace-nowrap">
                   <Button size="sm" variant="outline" onClick={() => setDraft(r)}>Изменить</Button>
@@ -248,7 +299,7 @@ function SiteScheduleAdmin() {
               </tr>
             ))}
             {shown.length === 0 && (
-              <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Строк пока нет</td></tr>
+              <tr><td colSpan={maxSets + 6} className="p-6 text-center text-muted-foreground">Строк пока нет</td></tr>
             )}
           </tbody>
         </table>
@@ -261,4 +312,45 @@ function romanToInt(s: string): number {
   const m: Record<string, number> = { i: 1, ii: 2, iii: 3, iv: 4 };
   return m[s.toLowerCase()] ?? 0;
 }
-function cap(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function getSets(row: Partial<Row> | null | undefined): string[] {
+  if (Array.isArray(row?.sets) && row.sets.length > 0) return row.sets;
+  const legacy = [row?.month1_text ?? "", row?.month2_text ?? "", row?.month3_text ?? ""];
+  return legacy.some(Boolean) ? legacy : Array(MIN_SET_COUNT).fill("");
+}
+
+const RU_MONTHS: Record<string, number> = {
+  январ: 1,
+  феврал: 2,
+  март: 3,
+  апрел: 4,
+  май: 5,
+  мая: 5,
+  июн: 6,
+  июл: 7,
+  август: 8,
+  сентябр: 9,
+  октябр: 10,
+  ноябр: 11,
+  декабр: 12,
+};
+
+function getLaunchDate(row: Partial<Row>): number | null {
+  const text = getSets(row).find((value) => value.trim())?.toLowerCase() ?? "";
+  if (!text) return null;
+
+  const numeric = text.match(/(?:^|[^\d])(\d{1,2})(?:[–-]\d{1,2})?[./](\d{1,2})(?:[./](\d{2,4}))?/);
+  if (numeric) {
+    const numericYear = numeric[3] ? Number(numeric[3].length === 2 ? `20${numeric[3]}` : numeric[3]) : Number(row.year ?? new Date().getFullYear());
+    return Date.UTC(numericYear, Number(numeric[2]) - 1, Number(numeric[1]));
+  }
+
+  for (const [prefix, month] of Object.entries(RU_MONTHS)) {
+    if (text.includes(prefix)) {
+      const day = text.match(new RegExp(`(?:^|\\D)(\\d{1,2})(?:[–-]\\d{1,2})?\\s+${prefix}`))?.[1];
+      return Date.UTC(Number(row.year ?? new Date().getFullYear()), month - 1, Number(day ?? 1));
+    }
+  }
+
+  return null;
+}

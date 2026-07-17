@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,7 @@ export function CourseReviews({ courseId }: { courseId: string }) {
   const { data } = useQuery({
     queryKey: ["course-reviews", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("course_reviews")
         .select("*")
         .eq("course_id", courseId)
@@ -34,7 +34,7 @@ export function CourseReviews({ courseId }: { courseId: string }) {
     e.preventDefault();
     if (!name.trim() || !text.trim()) return toast.error("Заполните имя и текст");
     setSubmitting(true);
-    const { error } = await supabase.from("course_reviews").insert({
+    const { error } = await db.from("course_reviews").insert({
       course_id: courseId,
       author_name: name.trim().slice(0, 100),
       author_company: company.trim().slice(0, 100) || null,

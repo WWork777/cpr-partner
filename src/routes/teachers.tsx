@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { TeacherPhoto } from "@/components/site/TeacherPhoto";
 import { teachersQuery } from "@/lib/queries";
-import { teacherDisplayPhoto, teacherPhotoFallback } from "@/lib/teacher-photos";
 
 export const Route = createFileRoute("/teachers")({
   head: () => ({
@@ -27,22 +27,13 @@ function TeachersPage() {
         </p>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {teachers.map((t, index) => {
-            const fallbackPhoto = teacherPhotoFallback(t.full_name, index);
-            const displayPhoto = teacherDisplayPhoto(t.full_name, t.photo_url, index);
-
-            return (
+          {teachers.map((t) => (
               <article key={t.id} className="rounded-2xl bg-card p-5 shadow-soft border border-border/40">
                 <div className="flex items-start gap-4">
-                  <img
-                    src={displayPhoto}
+                  <TeacherPhoto
+                    src={t.photo_url}
                     alt={t.full_name}
                     className="h-24 w-24 rounded-2xl object-cover shrink-0"
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = fallbackPhoto;
-                    }}
                   />
                   <div className="min-w-0">
                     <div className="font-semibold leading-tight">{t.full_name}</div>
@@ -52,8 +43,7 @@ function TeachersPage() {
                 {t.credentials && <p className="mt-4 text-sm text-muted-foreground">{t.credentials}</p>}
                 {t.bio && <p className="mt-3 text-sm">{t.bio}</p>}
               </article>
-            );
-          })}
+            ))}
           {teachers.length === 0 && (
             <p className="text-sm text-muted-foreground col-span-full">Информация скоро появится.</p>
           )}

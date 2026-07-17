@@ -1,4 +1,0 @@
-project_id = "laimevnyvlshpapapfdr"
-
-[functions.seed-cpr]
-verify_jwt = false

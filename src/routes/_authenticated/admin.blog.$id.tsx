@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +51,7 @@ function EditPost() {
   useEffect(() => {
     if (isNew) return;
     (async () => {
-      const { data, error } = await supabase.from("blog_posts").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await db.from("blog_posts").select("*").eq("id", id).maybeSingle();
       if (error || !data) {
         toast.error(error?.message ?? "Статья не найдена");
         return;
@@ -92,14 +92,14 @@ function EditPost() {
       published_at: form.published ? new Date().toISOString() : null,
     };
     if (isNew) {
-      const { data, error } = await supabase.from("blog_posts").insert(payload).select("id").single();
+      const { data, error } = await db.from("blog_posts").insert(payload).select("id").single();
       if (error) return toast.error(error.message);
       toast.success("Статья создана");
       qc.invalidateQueries({ queryKey: ["admin", "blog"] });
       qc.invalidateQueries({ queryKey: ["blog", "published"] });
       navigate({ to: "/admin/blog/$id", params: { id: data.id } });
     } else {
-      const { error } = await supabase.from("blog_posts").update(payload).eq("id", id);
+      const { error } = await db.from("blog_posts").update(payload).eq("id", id);
       if (error) return toast.error(error.message);
       toast.success("Сохранено");
       qc.invalidateQueries({ queryKey: ["admin", "blog"] });

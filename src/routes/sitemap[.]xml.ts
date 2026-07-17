@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import directions from "@/data/directions.json";
 
 // TODO: replace with project URL once a domain is set.
@@ -35,17 +34,13 @@ export const Route = createFileRoute("/sitemap.xml")({
         let coursePaths: string[] = [];
         let blogPaths: string[] = [];
         try {
-          const supabase = createClient(
-            process.env.SUPABASE_URL!,
-            process.env.SUPABASE_PUBLISHABLE_KEY!,
-            { auth: { persistSession: false, autoRefreshToken: false } },
-          );
-          const [{ data: courses }, { data: posts }] = await Promise.all([
-            supabase.from("courses").select("slug").eq("published", true),
-            supabase.from("blog_posts").select("slug").eq("published", true),
+          const { queryDatabase } = await import("@/lib/local-db.server");
+          const [{ rows: courses }, { rows: posts }] = await Promise.all([
+            queryDatabase<{ slug: string }>("SELECT slug FROM courses WHERE published = true"),
+            queryDatabase<{ slug: string }>("SELECT slug FROM blog_posts WHERE published = true"),
           ]);
-          coursePaths = (courses ?? []).map((c) => `/courses/${c.slug}`);
-          blogPaths = (posts ?? []).map((p) => `/blog/${p.slug}`);
+          coursePaths = courses.map((c) => `/courses/${c.slug}`);
+          blogPaths = posts.map((p) => `/blog/${p.slug}`);
         } catch {
           // tolerate failures during SSR build
         }

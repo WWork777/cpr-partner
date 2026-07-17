@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Save, ArrowUp, ArrowDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +39,8 @@ function GalleryAdmin() {
       is_published: row.is_published ?? true,
     };
     const { error } = row.id
-      ? await supabase.from("gallery_images").update(payload).eq("id", row.id)
-      : await supabase.from("gallery_images").insert(payload);
+      ? await db.from("gallery_images").update(payload).eq("id", row.id)
+      : await db.from("gallery_images").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Сохранено");
     setDraft(null);
@@ -50,7 +50,7 @@ function GalleryAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить картинку?")) return;
-    const { error } = await supabase.from("gallery_images").delete().eq("id", id);
+    const { error } = await db.from("gallery_images").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "gallery"] });
     qc.invalidateQueries({ queryKey: ["gallery", "published"] });
@@ -60,7 +60,7 @@ function GalleryAdmin() {
     const row = data?.find((x) => x.id === id);
     if (!row) return;
     const next = row.sort_order + dir * 10;
-    await supabase.from("gallery_images").update({ sort_order: next }).eq("id", id);
+    await db.from("gallery_images").update({ sort_order: next }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["admin", "gallery"] });
     qc.invalidateQueries({ queryKey: ["gallery", "published"] });
   }

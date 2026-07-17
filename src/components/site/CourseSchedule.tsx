@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { CalendarDays, MapPin, Users } from "lucide-react";
 
 export function CourseSchedule({ courseId }: { courseId: string }) {
   const { data } = useQuery({
     queryKey: ["course-schedules", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("course_schedules")
         .select("*")
         .eq("course_id", courseId)

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +47,7 @@ function BannersAdmin() {
   const { data } = useQuery({
     queryKey: ["admin", "banners"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("banners").select("*").order("sort_order");
+      const { data, error } = await db.from("banners").select("*").order("sort_order");
       if (error) throw error;
       return (data ?? []) as Banner[];
     },
@@ -62,7 +62,7 @@ function BannersAdmin() {
     payload.starts_at = draft.starts_at ? new Date(draft.starts_at).toISOString() : null;
     payload.ends_at = draft.ends_at ? new Date(draft.ends_at).toISOString() : null;
     payload.badge = draft.badge || null;
-    const { error } = await (supabase.from("banners") as any).insert(payload);
+    const { error } = await (db.from("banners") as any).insert(payload);
     if (error) return toast.error(error.message);
     setDraft(emptyDraft);
     qc.invalidateQueries({ queryKey: ["admin", "banners"] });
@@ -70,7 +70,7 @@ function BannersAdmin() {
   }
 
   async function update(id: string, patch: Record<string, any>) {
-    const { error } = await (supabase.from("banners") as any).update(patch).eq("id", id);
+    const { error } = await (db.from("banners") as any).update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else {
       qc.invalidateQueries({ queryKey: ["admin", "banners"] });
@@ -81,7 +81,7 @@ function BannersAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить?")) return;
-    const { error } = await supabase.from("banners").delete().eq("id", id);
+    const { error } = await db.from("banners").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
       qc.invalidateQueries({ queryKey: ["admin", "banners"] });

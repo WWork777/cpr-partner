@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Download, RefreshCw, Save, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { adminApplicationsQuery } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ function ApplicationsPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   async function update(id: string, status: string) {
-    const { error } = await supabase
+    const { error } = await db
       .from("applications")
       .update({ status: status as (typeof STATUS)[number] })
       .eq("id", id);
@@ -45,7 +45,7 @@ function ApplicationsPage() {
 
   async function remove(id: string) {
     if (!confirm("Удалить заявку?")) return;
-    const { error } = await supabase.from("applications").delete().eq("id", id);
+    const { error } = await db.from("applications").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Удалено");
@@ -54,7 +54,7 @@ function ApplicationsPage() {
   }
 
   async function saveNotes(id: string) {
-    const { error } = await supabase
+    const { error } = await db
       .from("applications")
       .update({ admin_notes: notes[id]?.trim() || null })
       .eq("id", id);

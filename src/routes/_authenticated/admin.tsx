@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, GraduationCap, FolderTree, Inbox, LogOut, FileText, Settings, ShieldCheck, Image as ImageIcon, Ticket, CalendarRange, History, Users, FileBadge, Images, CalendarDays, Award } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/cpr-logo.png";
 
@@ -19,10 +19,10 @@ function AdminLayout() {
 
   useEffect(() => {
     (async () => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await db.auth.getUser();
       setEmail(userData.user?.email ?? "");
       if (!userData.user) return setIsAdmin(false);
-      const { data, error } = await supabase.rpc("has_role", {
+      const { data, error } = await db.rpc("has_role", {
         _user_id: userData.user.id,
         _role: "admin",
       });
@@ -38,7 +38,7 @@ function AdminLayout() {
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await db.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
 
@@ -75,7 +75,7 @@ WHERE email = '${email || "ваш@email"}';`}
 
   return (
     <div className="min-h-screen grid lg:grid-cols-[260px_1fr] bg-background">
-      <aside className="border-r border-border/60 bg-card p-4 lg:p-6 lg:min-h-screen">
+      <aside className="border-r border-border/60 bg-card p-4 lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto lg:p-6">
         <Link to="/" className="flex items-center gap-2">
           <img src={logoAsset} alt="ЦПР Партнер" className="h-9 w-auto" />
           <div className="text-sm font-bold text-muted-foreground">Админка</div>
@@ -106,7 +106,7 @@ WHERE email = '${email || "ваш@email"}';`}
           </Button>
         </div>
       </aside>
-      <main className="p-6 lg:p-10 max-w-6xl">
+      <main className="min-w-0 p-6 lg:p-10 max-w-6xl">
         <Outlet />
       </main>
     </div>

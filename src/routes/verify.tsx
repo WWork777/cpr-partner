@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Search, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ function VerifyPage() {
     const n = number.trim();
     if (!n) return;
     setBusy(true);
-    const { data } = await supabase
+    const { data } = await db
       .from("certificates")
       .select("number, full_name, course_title, issued_at, valid_until, registry_no")
       .ilike("number", n)

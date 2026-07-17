@@ -18,16 +18,13 @@ type AppRow = {
 export const lookupApplicationsByPhone = createServerFn({ method: "POST" })
   .inputValidator((data) => Input.parse(data))
   .handler(async ({ data }): Promise<{ applications: AppRow[] }> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { queryDatabase } = await import("@/lib/local-db.server");
     const norm = normPhone(data.phone);
     if (norm.length < 10) return { applications: [] };
-    const { data: rows, error } = await supabaseAdmin
-      .from("applications")
-      .select("id, name, phone, course_title, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) return { applications: [] };
-    const matched = (rows ?? []).filter((r) => normPhone(r.phone ?? "").endsWith(norm.slice(-10)));
+    const result = await queryDatabase<{ id: string; name: string; phone: string; course_title: string | null; status: string; created_at: string }>(
+      "SELECT id, name, phone, course_title, status, created_at FROM applications ORDER BY created_at DESC LIMIT 200",
+    );
+    const matched = result.rows.filter((r) => normPhone(r.phone ?? "").endsWith(norm.slice(-10)));
     return {
       applications: matched.map((r) => ({
         id: r.id,

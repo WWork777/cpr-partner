@@ -25,13 +25,6 @@ export const Route = createFileRoute("/raspisanie")({
   component: SchedulePage,
 });
 
-const Q_MONTHS: Record<number, [string, string, string]> = {
-  1: ["январь", "февраль", "март"],
-  2: ["апрель", "май", "июнь"],
-  3: ["июль", "август", "сентябрь"],
-  4: ["октябрь", "ноябрь", "декабрь"],
-};
-
 function SchedulePage() {
   const { data } = useSuspenseQuery(publicScheduleQuery);
 
@@ -45,7 +38,7 @@ function SchedulePage() {
   const quarters = Array.from(new Set(yearRows.map((r) => r.quarter))).sort((a, b) => a - b);
   const [quarter, setQuarter] = useState<number>(quarters[0] ?? 1);
   const rows = yearRows.filter((r) => r.quarter === quarter);
-  const months = Q_MONTHS[quarter] ?? Q_MONTHS[1];
+  const setCount = Math.max(3, ...rows.map((row) => resolveCells(row, quarter).length));
 
   return (
     <SiteLayout>
@@ -74,7 +67,7 @@ function SchedulePage() {
               <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-4">
                 <img src={logoAsset} alt="ЦПР Партнер" className="h-12 w-auto" width={115} height={56} />
                 <div className="rounded-full bg-teal-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-soft">
-                  Группы каждый месяц
+                  Наборы по графику
                 </div>
               </div>
             </div>
@@ -130,12 +123,12 @@ function SchedulePage() {
               <thead>
                 <tr className="bg-primary text-white text-left">
                   <th className="p-4 font-bold w-1/2">Название программы</th>
-                  <th className="p-4 font-bold" colSpan={3}>Сроки обучения</th>
+                  <th className="p-4 font-bold" colSpan={setCount}>Сроки обучения</th>
                 </tr>
                 <tr className="bg-primary/90 text-white text-left text-xs uppercase tracking-wider">
                   <th className="px-4 pb-3"></th>
-                  {months.map((m) => (
-                    <th key={m} className="px-4 pb-3 font-semibold">{m}</th>
+                  {Array.from({ length: setCount }, (_, index) => (
+                    <th key={index} className="px-4 pb-3 font-semibold">Набор {index + 1}</th>
                   ))}
                 </tr>
               </thead>
@@ -145,14 +138,14 @@ function SchedulePage() {
                   return (
                     <tr key={r.id} className="border-t border-border/50 align-top">
                       <td className="p-4 font-semibold text-slate-900">{r.topic}</td>
-                      <td className="p-4 text-slate-700 whitespace-pre-line">{cells[0] || "—"}</td>
-                      <td className="p-4 text-slate-700 whitespace-pre-line">{cells[1] || "—"}</td>
-                      <td className="p-4 text-slate-700 whitespace-pre-line">{cells[2] || "—"}</td>
+                      {Array.from({ length: setCount }, (_, index) => (
+                        <td key={index} className="p-4 text-slate-700 whitespace-pre-line">{cells[index] || "—"}</td>
+                      ))}
                     </tr>
                   );
                 })}
                 {rows.length === 0 && (
-                  <tr><td colSpan={4} className="p-10 text-center text-muted-foreground">Расписание уточняется. Позвоните нам, чтобы согласовать удобную дату.</td></tr>
+                  <tr><td colSpan={setCount + 1} className="p-10 text-center text-muted-foreground">Расписание уточняется. Позвоните нам, чтобы согласовать удобную дату.</td></tr>
                 )}
               </tbody>
             </table>
@@ -200,6 +193,7 @@ function extractMonths(text: string): number[] {
 }
 
 type ScheduleRow = {
+  sets: string[] | null;
   month1_text: string | null;
   month2_text: string | null;
   month3_text: string | null;
@@ -207,8 +201,10 @@ type ScheduleRow = {
   time_text: string | null;
 };
 
-function resolveCells(r: ScheduleRow, quarter: number): [string, string, string] {
-  const cells: [string, string, string] = [
+function resolveCells(r: ScheduleRow, quarter: number): string[] {
+  if (Array.isArray(r.sets) && r.sets.length > 0) return r.sets;
+
+  const cells: string[] = [
     r.month1_text ?? "",
     r.month2_text ?? "",
     r.month3_text ?? "",

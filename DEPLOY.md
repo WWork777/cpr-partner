@@ -1,6 +1,6 @@
 # Деплой на свой VPS
 
-Проект — TanStack Start (React 19 + Vite 7) + Supabase. По умолчанию билд
+Проект — TanStack Start (React 19 + Vite 7) + собственный PostgreSQL API. По умолчанию билд
 заточен под Cloudflare Workers (через nitro). Для VPS нужно собрать под
 Node-сервер и поднять процесс под reverse-proxy (nginx/caddy).
 
@@ -14,18 +14,9 @@ git clone <repo>
 cd <project>
 ```
 
-### База данных (Supabase → свой Postgres)
-Вариант A — оставить managed Supabase, просто переехать фронтом.
-Вариант B — поднять self-hosted Supabase (docker-compose) и перелить дамп.
-Вариант C — переписать на чистый Postgres + свой бэкенд (тогда нужно
-заменить `src/integrations/supabase/*` на свой клиент).
-
-Все миграции уже лежат в `supabase/migrations/` — можно применить к любому
-Postgres (`psql -f`).
-
-Бакет файлов (`course-images`) — выгрузить и положить либо в S3-совместимое
-хранилище, либо локально + раздавать nginx-ом. URL картинок хранятся как
-полные ссылки в БД, так что после переноса прогоните `UPDATE` по доменам.
+### База данных и файлы
+На VPS используется PostgreSQL `cpr` и собственный API приложения. Схема находится
+в `server/schema.sql`, а файлы хранятся в каталоге `UPLOADS_DIR` и отдаются через `/uploads/`.
 
 ### Секреты
 Скопируй `.env.example` → `.env` и заполни (см. ниже).
@@ -114,51 +105,13 @@ server {
 
 ---
 
-## 5. Supabase-прокси (если оставляешь managed)
-
-Если хочешь спрятать Supabase за своим доменом — поставь его на
-поддомен и пропиши в `.env`:
-
-```
-VITE_SUPABASE_URL=https://db.cpr-partner.ru
-SUPABASE_URL=https://db.cpr-partner.ru
-```
-
-nginx для прокси:
-```nginx
-server {
-  listen 443 ssl http2;
-  server_name db.cpr-partner.ru;
-  location / {
-    proxy_pass https://YOUR-PROJECT.supabase.co;
-    proxy_set_header Host YOUR-PROJECT.supabase.co;
-    proxy_ssl_server_name on;
-  }
-}
-```
-
----
-
-## 6. Переход на свой Postgres (вариант C)
-
-1. Применить миграции: `psql $DATABASE_URL -f supabase/migrations/*.sql`
-2. Заменить `src/integrations/supabase/client.ts` на свой fetch-клиент
-   (PostgREST/Hasura/собственный API).
-3. Все запросы идут через `src/lib/queries.ts` и `*.functions.ts` — точечно
-   перепишутся, RLS-политики надо будет либо повторить, либо унести в
-   серверные функции.
-4. Storage (`course-images`) — заменить на S3/MinIO; `ImageUpload.tsx` и
-   `admin.banners.tsx` ходят в `supabase.storage.from(...)`.
-
----
-
-## 7. Чек-лист перед прод-запуском
+## 5. Чек-лист перед прод-запуском
 
 - [ ] `.env` создан, секреты НЕ в git (`.gitignore` уже исключает `.env`)
 - [ ] `bun run build` проходит локально
-- [ ] CORS Supabase разрешает домен `https://cpr-partner.ru`
-- [ ] Перенесён бакет `course-images` (или прописан новый URL)
-- [ ] В админке создан пользователь с ролью `admin` (миграция уже есть)
+- [ ] PostgreSQL доступен по `DATABASE_URL`
+- [ ] Каталог `UPLOADS_DIR` доступен пользователю `www-data`
+- [ ] В PostgreSQL создан пользователь с ролью `admin`
 - [ ] nginx раздаёт `/robots.txt` и `/sitemap.xml` (это маршруты приложения)
 - [ ] Настроены бэкапы Postgres (`pg_dump` в cron)
 
@@ -170,7 +123,7 @@ server {
 bun run build              # прод-сборка
 bun run preview            # локально проверить прод-сборку
 node .output/server/index.mjs
-psql $DATABASE_URL -f supabase/migrations/<file>.sql
+psql $DATABASE_URL -f server/schema.sql
 ```
 
 Логин админа сейчас: `admin@cpr-partner.local` / `CprAdmin!2026`

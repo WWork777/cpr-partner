@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { adminPostsQuery } from "@/lib/queries";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ function AdminBlogList() {
 
   async function remove(id: string, title: string) {
     if (!confirm(`Удалить статью «${title}»?`)) return;
-    const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+    const { error } = await db.from("blog_posts").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Удалено");
     qc.invalidateQueries({ queryKey: ["admin", "blog"] });

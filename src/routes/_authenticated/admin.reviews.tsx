@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Trash2, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -14,7 +14,7 @@ function ReviewsAdmin() {
   const { data } = useQuery({
     queryKey: ["admin", "reviews"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("course_reviews")
         .select("*, courses(title, slug)")
         .order("created_at", { ascending: false });
@@ -24,14 +24,14 @@ function ReviewsAdmin() {
   });
 
   async function approve(id: string, value: boolean) {
-    const { error } = await supabase.from("course_reviews").update({ is_approved: value }).eq("id", id);
+    const { error } = await db.from("course_reviews").update({ is_approved: value }).eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "reviews"] });
   }
 
   async function remove(id: string) {
     if (!confirm("Удалить отзыв?")) return;
-    const { error } = await supabase.from("course_reviews").delete().eq("id", id);
+    const { error } = await db.from("course_reviews").delete().eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "reviews"] });
   }

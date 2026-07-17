@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { notifyApplication } from "@/lib/notify.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +55,7 @@ export function ApplicationForm({ courseId, courseTitle, variant = "section", on
         referrer: document.referrer || null,
       };
     }
-    const { error } = await supabase.from("applications").insert({
+    const { error } = await db.from("applications").insert({
       course_id: courseId ?? null,
       course_title: courseTitle ?? null,
       name: parsed.data.name,

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +43,8 @@ function TeachersAdmin() {
       is_published: row.is_published ?? true,
     };
     const { error } = row.id
-      ? await supabase.from("teachers").update(payload).eq("id", row.id)
-      : await supabase.from("teachers").insert(payload);
+      ? await db.from("teachers").update(payload).eq("id", row.id)
+      : await db.from("teachers").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Сохранено");
     setDraft(null);
@@ -54,7 +54,7 @@ function TeachersAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить преподавателя?")) return;
-    const { error } = await supabase.from("teachers").delete().eq("id", id);
+    const { error } = await db.from("teachers").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "teachers"] });
     qc.invalidateQueries({ queryKey: ["teachers", "published"] });

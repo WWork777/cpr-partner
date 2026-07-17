@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import {
   categoriesQuery,
   type CourseFeature,
@@ -97,7 +97,7 @@ function EditCourse() {
   useEffect(() => {
     if (isNew) return;
     (async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await db.from("courses").select("*").eq("id", id).maybeSingle();
       if (error || !data) {
         toast.error(error?.message ?? "Курс не найден");
         setLoading(false);
@@ -181,7 +181,7 @@ function EditCourse() {
       sort_order: form.sort_order,
     };
     if (isNew) {
-      const { data, error } = await supabase.from("courses").insert(payload).select("id").single();
+      const { data, error } = await db.from("courses").insert(payload).select("id").single();
       if (error) {
         setSaving(false);
         return toast.error(error.message);
@@ -192,7 +192,7 @@ function EditCourse() {
       setSaving(false);
       navigate({ to: "/admin/courses/$id", params: { id: data.id } });
     } else {
-      const { error } = await supabase.from("courses").update(payload).eq("id", id);
+      const { error } = await db.from("courses").update(payload).eq("id", id);
       if (error) {
         setSaving(false);
         return toast.error(error.message);

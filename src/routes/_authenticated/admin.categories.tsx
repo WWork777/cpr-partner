@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { categoriesQuery } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ function CategoriesAdmin() {
 
   async function create() {
     if (!newCat.slug || !newCat.name) return toast.error("Заполните slug и название");
-    const { error } = await supabase.from("categories").insert({
+    const { error } = await db.from("categories").insert({
       slug: newCat.slug,
       name: newCat.name,
       sort_order: (data?.length ?? 0) * 10 + 10,
@@ -34,14 +34,14 @@ function CategoriesAdmin() {
 
   async function update(id: string, field: "slug" | "name", value: string) {
     const patch = field === "slug" ? { slug: value } : { name: value };
-    const { error } = await supabase.from("categories").update(patch).eq("id", id);
+    const { error } = await db.from("categories").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["categories"] });
   }
 
   async function remove(id: string) {
     if (!confirm("Удалить категорию? Курсы в ней останутся без категории.")) return;
-    const { error } = await supabase.from("categories").delete().eq("id", id);
+    const { error } = await db.from("categories").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Удалено");

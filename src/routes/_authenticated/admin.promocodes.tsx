@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ function PromoAdmin() {
   const { data } = useQuery({
     queryKey: ["admin", "promocodes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("promocodes").select("*").order("created_at", { ascending: false });
+      const { data, error } = await db.from("promocodes").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -36,7 +36,7 @@ function PromoAdmin() {
       is_active: true,
     };
     if (!payload.code) return toast.error("Введите код");
-    const { error } = await supabase.from("promocodes").insert(payload as never);
+    const { error } = await db.from("promocodes").insert(payload as never);
     if (error) return toast.error(error.message);
     setDraft({ code: "", discount_percent: 10, discount_amount: "", valid_until: "", max_uses: "" });
     qc.invalidateQueries({ queryKey: ["admin", "promocodes"] });
@@ -44,14 +44,14 @@ function PromoAdmin() {
   }
 
   async function toggle(id: string, value: boolean) {
-    const { error } = await supabase.from("promocodes").update({ is_active: value }).eq("id", id);
+    const { error } = await db.from("promocodes").update({ is_active: value }).eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "promocodes"] });
   }
 
   async function remove(id: string) {
     if (!confirm("Удалить промокод?")) return;
-    const { error } = await supabase.from("promocodes").delete().eq("id", id);
+    const { error } = await db.from("promocodes").delete().eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "promocodes"] });
   }

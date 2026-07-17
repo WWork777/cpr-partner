@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Upload, Loader2, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -29,11 +29,11 @@ export function ImageUpload({
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
-      const up = await supabase.storage
+      const up = await db.storage
         .from("course-images")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (up.error) throw up.error;
-      const signed = await supabase.storage
+      const signed = await db.storage
         .from("course-images")
         .createSignedUrl(path, TEN_YEARS);
       if (signed.error) throw signed.error;

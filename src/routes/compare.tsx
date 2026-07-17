@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { X, ChevronLeft, Check } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { courseImageWithFallback } from "@/lib/course-images";
 import { removeFromCompare, useCompare, clearCompare } from "@/lib/compare-store";
@@ -24,7 +24,7 @@ function ComparePage() {
     queryKey: ["compare", ids.join(",")],
     enabled: ids.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("courses")
         .select("id, slug, title, short_description, price, duration, format, image_url")
         .in("id", ids);

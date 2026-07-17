@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +25,13 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await db.auth.signInWithPassword({ email, password });
       setBusy(false);
       if (error) return toast.error(error.message);
       toast.success("Добро пожаловать!");
       navigate({ to: "/admin" });
     } else {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await db.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: window.location.origin + "/admin" },

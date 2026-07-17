@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
+import { TeacherPhoto } from "@/components/site/TeacherPhoto";
 import { teachersQuery } from "@/lib/queries";
-import { teacherDisplayPhoto, teacherPhotoFallback } from "@/lib/teacher-photos";
 import {
   Carousel,
   CarouselContent,
@@ -35,26 +35,17 @@ export function TeachersCarousel() {
 
       <Carousel opts={{ align: "start", loop: false }}>
         <CarouselContent className="-ml-4">
-          {items.map((t, index) => {
-            const fallbackPhoto = teacherPhotoFallback(t.full_name, index);
-            const displayPhoto = teacherDisplayPhoto(t.full_name, t.photo_url, index);
-
-            return (
+          {items.map((t) => (
               <CarouselItem
                 key={t.id}
                 className="pl-4 basis-[80%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
               >
                 <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition hover:shadow-card">
                   <div className="aspect-[3/4] w-full bg-muted bg-cover bg-center relative">
-                    <img
-                      src={displayPhoto}
+                    <TeacherPhoto
+                      src={t.photo_url}
                       alt={t.full_name}
                       className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = fallbackPhoto;
-                      }}
                     />
                   </div>
                   <div className="p-4">
@@ -74,8 +65,7 @@ export function TeachersCarousel() {
                   </div>
                 </article>
               </CarouselItem>
-            );
-          })}
+            ))}
         </CarouselContent>
         <CarouselPrevious className="hidden md:flex" />
         <CarouselNext className="hidden md:flex" />

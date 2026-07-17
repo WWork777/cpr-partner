@@ -12,7 +12,7 @@ import {
   Trash2,
   Copy,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { adminCoursesQuery, categoriesQuery } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,7 @@ function CoursesAdmin() {
 
   async function bulkPublish(value: boolean) {
     if (selected.size === 0) return;
-    const { error } = await supabase
+    const { error } = await db
       .from("courses")
       .update({ published: value })
       .in("id", [...selected]);
@@ -81,7 +81,7 @@ function CoursesAdmin() {
   }
   async function bulkSetCategory() {
     if (selected.size === 0 || !bulkCat) return;
-    const { error } = await supabase
+    const { error } = await db
       .from("courses")
       .update({ category_id: bulkCat })
       .in("id", [...selected]);
@@ -92,14 +92,14 @@ function CoursesAdmin() {
   }
 
   async function togglePublished(id: string, value: boolean) {
-    const { error } = await supabase.from("courses").update({ published: value }).eq("id", id);
+    const { error } = await db.from("courses").update({ published: value }).eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "courses"] });
   }
 
   async function remove(id: string) {
     if (!confirm("Удалить курс?")) return;
-    const { error } = await supabase.from("courses").delete().eq("id", id);
+    const { error } = await db.from("courses").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Удалено");
@@ -108,7 +108,7 @@ function CoursesAdmin() {
   }
 
   async function duplicate(id: string) {
-    const { data: src, error: e1 } = await supabase
+    const { data: src, error: e1 } = await db
       .from("courses")
       .select("*")
       .eq("id", id)
@@ -126,7 +126,7 @@ function CoursesAdmin() {
       slug: `${src.slug}-copy-${Math.random().toString(36).slice(2, 6)}`,
       published: false,
     };
-    const { error } = await supabase.from("courses").insert(copy);
+    const { error } = await db.from("courses").insert(copy);
     if (error) toast.error(error.message);
     else {
       toast.success("Курс продублирован");

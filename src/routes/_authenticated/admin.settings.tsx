@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ function SettingsPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("app_settings").select("value").eq("key", KEY).maybeSingle();
+      const { data } = await db.from("app_settings").select("value").eq("key", KEY).maybeSingle();
       if (data?.value) {
         const v = data.value as Partial<NotifySettings>;
         setSettings({ enabled: !!v.enabled, recipient: v.recipient ?? "" });
@@ -34,7 +34,7 @@ function SettingsPage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase
+    const { error } = await db
       .from("app_settings")
       .upsert({ key: KEY, value: settings, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) return toast.error(error.message);
@@ -86,7 +86,7 @@ function YandexMetrikaSettings() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data } = await db
         .from("app_settings")
         .select("value")
         .eq("key", "analytics")
@@ -99,7 +99,7 @@ function YandexMetrikaSettings() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase
+    const { error } = await db
       .from("app_settings")
       .upsert(
         { key: "analytics", value: { yandex_metrika_id: ymId.trim() || null }, updated_at: new Date().toISOString() },

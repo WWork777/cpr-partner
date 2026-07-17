@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { ArrowRight } from "lucide-react";
 
 export function HomeBanners() {
   const { data } = useQuery({
     queryKey: ["banners", "active"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("banners")
         .select("*")
         .eq("is_active", true)

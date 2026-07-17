@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,7 @@ function DocSamplesAdmin() {
       preview_url: row.preview_url || null,
       description: row.description || null,
     };
-    const { error } = await supabase.from("document_samples").upsert(payload, { onConflict: "doc_type" });
+    const { error } = await db.from("document_samples").upsert(payload, { onConflict: "doc_type" });
     if (error) return toast.error(error.message);
     toast.success("Сохранено");
     qc.invalidateQueries({ queryKey: ["document_samples"] });

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { X, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 
 export function PromoPopup() {
   const [open, setOpen] = useState(false);
@@ -9,7 +9,7 @@ export function PromoPopup() {
     queryKey: ["banners", "popup"],
     queryFn: async () => {
       const nowIso = new Date().toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("banners")
         .select("*")
         .eq("is_active", true)

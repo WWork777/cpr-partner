@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ApplicationForm } from "@/components/site/ApplicationForm";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { categoryImage, courseImageWithFallback } from "@/lib/course-images";
 import directions from "@/data/directions.json";
 import { DIRECTION_TO_CATEGORIES } from "@/data/directions-map";
@@ -20,13 +20,13 @@ const directionCoursesQuery = (slug: string) =>
     queryFn: async () => {
       const catSlugs = DIRECTION_TO_CATEGORIES[slug] ?? [];
       if (catSlugs.length === 0) return [];
-      const { data: cats } = await supabase
+      const { data: cats } = await db
         .from("categories")
         .select("id")
         .in("slug", catSlugs);
       const ids = (cats ?? []).map((c) => c.id);
       if (ids.length === 0) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("courses")
         .select("id, slug, title, short_description, price, duration, image_url")
         .in("category_id", ids)

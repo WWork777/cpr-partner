@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ function SchedulesAdmin() {
   const { data } = useQuery({
     queryKey: ["admin", "schedules"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("course_schedules")
         .select("*, courses(title)")
         .order("start_date", { ascending: true });
@@ -43,7 +43,7 @@ function SchedulesAdmin() {
   async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.course_id || !draft.start_date) return toast.error("Курс и дата старта обязательны");
-    const { error } = await supabase.from("course_schedules").insert({
+    const { error } = await db.from("course_schedules").insert({
       course_id: draft.course_id,
       start_date: draft.start_date,
       end_date: draft.end_date || null,
@@ -61,7 +61,7 @@ function SchedulesAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить поток?")) return;
-    const { error } = await supabase.from("course_schedules").delete().eq("id", id);
+    const { error } = await db.from("course_schedules").delete().eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["admin", "schedules"] });
   }
@@ -107,7 +107,7 @@ function SchedulesAdmin() {
         })
         .filter((x): x is NonNullable<typeof x> & { start_date: string } => !!x && !!x.start_date);
       if (!payload.length) return toast.error("Не распознано ни одной строки. Колонки: Курс, Старт, Конец, Формат, Город, Мест, Осталось, Цена");
-      const { error } = await supabase.from("course_schedules").insert(payload);
+      const { error } = await db.from("course_schedules").insert(payload);
       if (error) return toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["admin", "schedules"] });
       toast.success(`Импортировано: ${payload.length}`);

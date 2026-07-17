@@ -34,4 +34,4 @@ dist-ssr
 .env
 .env.local
 .output
-
+migration-uploads/

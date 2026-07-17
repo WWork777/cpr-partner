@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Pencil, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const certsQuery = queryOptions({
   queryKey: ["admin", "certificates"],
   queryFn: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("certificates")
       .select("*")
       .order("issued_at", { ascending: false });
@@ -62,8 +62,8 @@ function CertsAdmin() {
       registry_no: form.registry_no || null,
     };
     const res = form.id
-      ? await supabase.from("certificates").update(payload).eq("id", form.id)
-      : await supabase.from("certificates").insert(payload);
+      ? await db.from("certificates").update(payload).eq("id", form.id)
+      : await db.from("certificates").insert(payload);
     if (res.error) return toast.error(res.error.message);
     toast.success("Сохранено");
     setForm(null);
@@ -72,7 +72,7 @@ function CertsAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить удостоверение?")) return;
-    const { error } = await supabase.from("certificates").delete().eq("id", id);
+    const { error } = await db.from("certificates").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "certificates"] });
   }

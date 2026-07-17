@@ -1,1 +1,0 @@
-ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS document_description text;

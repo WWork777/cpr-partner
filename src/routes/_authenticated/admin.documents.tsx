@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, Save, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,8 +48,8 @@ function DocumentsAdmin() {
       is_published: row.is_published ?? true,
     };
     const { error } = row.id
-      ? await supabase.from("org_documents").update(payload).eq("id", row.id)
-      : await supabase.from("org_documents").insert(payload);
+      ? await db.from("org_documents").update(payload).eq("id", row.id)
+      : await db.from("org_documents").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Сохранено");
     setDraft(null);
@@ -59,7 +59,7 @@ function DocumentsAdmin() {
 
   async function remove(id: string) {
     if (!confirm("Удалить документ?")) return;
-    const { error } = await supabase.from("org_documents").delete().eq("id", id);
+    const { error } = await db.from("org_documents").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "org_documents"] });
     qc.invalidateQueries({ queryKey: ["org_documents", "published"] });

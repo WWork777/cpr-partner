@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/database/client";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/admin/audit")({
@@ -13,7 +13,7 @@ function AuditPage() {
   const { data } = useQuery({
     queryKey: ["admin", "audit"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("audit_log")
         .select("*")
         .order("created_at", { ascending: false })
