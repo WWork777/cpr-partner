@@ -6,6 +6,14 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const syncServerPort = {
+  name: "cpr-sync-server-port",
+  configureServer(server: { config: { server: { port?: number | false } } }) {
+    const port = server.config.server.port;
+    if (typeof port === "number") process.env.PORT = String(port);
+  },
+};
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -13,6 +21,7 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    plugins: [syncServerPort],
     // The VPS runs the generated Node server behind nginx.
     // @ts-expect-error Nitro options are forwarded by the Lovable config.
     nitro: { preset: "node-server" },

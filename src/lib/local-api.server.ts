@@ -1,6 +1,18 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { executeTableRequest, getUserFromRequest, login, logout, signup } from "./local-db.server";
+import {
+  canUploadFiles,
+  createManagedUser,
+  executeTableRequest,
+  getUserFromRequest,
+  listManagedUsers,
+  login,
+  logout,
+  requestPasswordReset,
+  resetPassword,
+  updateOwnEmail,
+  updateManagedUser,
+} from "./local-db.server";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -11,6 +23,7 @@ function json(data: unknown, status = 200) {
 
 export async function handleLocalApi(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
+  try {
   if (url.pathname === "/api/db" && request.method === "POST") {
     try {
       const result = await executeTableRequest(request, await request.json());
@@ -24,15 +37,37 @@ export async function handleLocalApi(request: Request): Promise<Response | null>
   if (url.pathname === "/api/auth/login" && request.method === "POST") {
     const body = await request.json() as { email?: string; password?: string };
     const result = await login(body.email ?? "", body.password ?? "");
-    return result.error ? json({ data: null, error: { message: result.error } }, 401) : json({ data: result, error: null });
+    return "error" in result ? json({ data: null, error: { message: result.error } }, 401) : json({ data: result, error: null });
   }
   if (url.pathname === "/api/auth/signup" && request.method === "POST") {
-    const body = await request.json() as { email?: string; password?: string };
+    return json({ data: null, error: { message: "Регистрация отключена. Создайте пользователя в админке." } }, 403);
+  }
+  if (url.pathname === "/api/auth/request-password-reset" && request.method === "POST") {
+    const body = await request.json() as { email?: string };
     try {
-      const result = await signup(body.email ?? "", body.password ?? "");
-      return result.error ? json({ data: null, error: { message: result.error } }, 400) : json({ data: result, error: null });
+      const origin = `${request.headers.get("x-forwarded-proto") || url.protocol.replace(":", "")}://${request.headers.get("x-forwarded-host") || url.host}`;
+      await requestPasswordReset(body.email ?? "", origin);
+      return json({ data: { ok: true }, error: null });
     } catch (error) {
-      return json({ data: null, error: { message: error instanceof Error ? error.message : "Registration failed" } }, 400);
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось отправить письмо" } }, 503);
+    }
+  }
+  if (url.pathname === "/api/auth/reset-password" && request.method === "POST") {
+    const body = await request.json() as { token?: string; password?: string };
+    try {
+      const result = await resetPassword(body.token ?? "", body.password ?? "");
+      return json({ data: result, error: null });
+    } catch (error) {
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось изменить пароль" } }, 400);
+    }
+  }
+  if (url.pathname === "/api/auth/update-email" && request.method === "POST") {
+    const body = await request.json() as { email?: string; currentPassword?: string };
+    try {
+      const result = await updateOwnEmail(request, body.email ?? "", body.currentPassword ?? "");
+      return json({ data: result, error: null });
+    } catch (error) {
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось изменить email" } }, 400);
     }
   }
   if (url.pathname === "/api/auth/session" && request.method === "GET") {
@@ -47,9 +82,34 @@ export async function handleLocalApi(request: Request): Promise<Response | null>
     const user = await getUserFromRequest(request);
     return json({ data: !!user && user.id === body.userId && user.role === body.role, error: null });
   }
+  if (url.pathname === "/api/admin/users" && request.method === "GET") {
+    try {
+      const users = await listManagedUsers(request);
+      return json({ data: users, error: null });
+    } catch (error) {
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Доступ запрещён" } }, error instanceof Error && error.message === "Доступ запрещён" ? 403 : 503);
+    }
+  }
+  if (url.pathname === "/api/admin/users" && request.method === "POST") {
+    try {
+      const result = await createManagedUser(request, await request.json());
+      return json({ data: result, error: null }, 201);
+    } catch (error) {
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось создать пользователя" } }, 400);
+    }
+  }
+  const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+  if (userMatch && request.method === "PATCH") {
+    try {
+      const result = await updateManagedUser(request, decodeURIComponent(userMatch[1]), await request.json());
+      return json({ data: result, error: null });
+    } catch (error) {
+      return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось изменить пользователя" } }, 400);
+    }
+  }
   if (url.pathname === "/api/storage" && request.method === "POST") {
     const user = await getUserFromRequest(request);
-    if (user?.role !== "admin") return json({ data: null, error: { message: "Доступ запрещён" } }, 401);
+    if (!canUploadFiles(user)) return json({ data: null, error: { message: "Доступ запрещён" } }, 401);
     try {
       const form = await request.formData();
       const file = form.get("file");
@@ -65,6 +125,10 @@ export async function handleLocalApi(request: Request): Promise<Response | null>
     } catch (error) {
       return json({ data: null, error: { message: error instanceof Error ? error.message : "Не удалось сохранить файл" } }, 400);
     }
+  }
+  } catch (error) {
+    console.error("Local API error", error);
+    return json({ data: null, error: { message: "Сервис временно недоступен. Попробуйте ещё раз." } }, 503);
   }
   return null;
 }

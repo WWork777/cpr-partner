@@ -4,15 +4,24 @@ CREATE TABLE IF NOT EXISTS app_users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL UNIQUE,
   password_hash text NOT NULL,
+  display_name text,
+  is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-  role text NOT NULL CHECK (role IN ('admin', 'user')),
+  role text NOT NULL CHECK (role IN ('admin', 'manager', 'user')),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, role)
+);
+
+CREATE TABLE IF NOT EXISTS user_permissions (
+  user_id uuid NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  permission text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, permission)
 );
 
 CREATE TABLE IF NOT EXISTS app_sessions (
@@ -21,6 +30,27 @@ CREATE TABLE IF NOT EXISTS app_sessions (
   expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  token_hash text PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL,
+  used_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx ON password_reset_tokens(user_id);
+
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS display_name text;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+DO $$
+BEGIN
+  ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
+  ALTER TABLE user_roles ADD CONSTRAINT user_roles_role_check CHECK (role IN ('admin', 'manager', 'user'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

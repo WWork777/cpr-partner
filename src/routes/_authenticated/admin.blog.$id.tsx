@@ -51,23 +51,29 @@ function EditPost() {
   useEffect(() => {
     if (isNew) return;
     (async () => {
-      const { data, error } = await db.from("blog_posts").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        toast.error(error?.message ?? "Статья не найдена");
-        return;
+      try {
+        const { data, error } = await db.from("blog_posts").select("*").eq("id", id).maybeSingle();
+        if (error || !data) {
+          toast.error(error?.message ?? "Статья не найдена");
+          return;
+        }
+        const tags = Array.isArray(data.tags) ? data.tags : [];
+        setForm({
+          slug: data.slug,
+          title: data.title,
+          excerpt: data.excerpt ?? "",
+          content: data.content ?? "",
+          cover_url: data.cover_url ?? "",
+          tags: tags.map((tag: unknown) => String(tag)).join(", "),
+          meta_title: data.meta_title ?? "",
+          meta_description: data.meta_description ?? "",
+          published: data.published,
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Не удалось загрузить статью");
+      } finally {
+        setLoading(false);
       }
-      setForm({
-        slug: data.slug,
-        title: data.title,
-        excerpt: data.excerpt ?? "",
-        content: data.content ?? "",
-        cover_url: data.cover_url ?? "",
-        tags: (data.tags ?? []).join(", "),
-        meta_title: data.meta_title ?? "",
-        meta_description: data.meta_description ?? "",
-        published: data.published,
-      });
-      setLoading(false);
     })();
   }, [id, isNew]);
 

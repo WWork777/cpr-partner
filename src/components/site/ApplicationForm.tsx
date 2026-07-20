@@ -84,11 +84,6 @@ export function ApplicationForm({ courseId, courseTitle, variant = "section", on
         utm_campaign: utm.utm_campaign,
       },
     }).catch(() => {});
-    // Yandex.Metrika goal
-    try {
-      const w = window as unknown as { ym?: (id: number, ev: string, goal: string) => void; __ymCounterId?: number };
-      if (w.ym && w.__ymCounterId) w.ym(w.__ymCounterId, "reachGoal", "application_submit");
-    } catch { /* noop */ }
     toast.success("Заявка отправлена! Мы свяжемся с вами в ближайшее время.");
     setForm({ name: "", phone: "", city: "", message: "" });
     setConsent(false);

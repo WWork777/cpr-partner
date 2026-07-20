@@ -37,6 +37,7 @@ import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminTeachersRouteImport } from './routes/_authenticated/admin.teachers'
 import { Route as AuthenticatedAdminSiteScheduleRouteImport } from './routes/_authenticated/admin.site-schedule'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -195,6 +196,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminTeachersRoute =
   AuthenticatedAdminTeachersRouteImport.update({
     id: '/teachers',
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/site-schedule': typeof AuthenticatedAdminSiteScheduleRoute
   '/admin/teachers': typeof AuthenticatedAdminTeachersRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/courses/$id': typeof AuthenticatedAdminCoursesIdRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/site-schedule': typeof AuthenticatedAdminSiteScheduleRoute
   '/admin/teachers': typeof AuthenticatedAdminTeachersRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/courses/$id': typeof AuthenticatedAdminCoursesIdRoute
@@ -439,6 +447,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/site-schedule': typeof AuthenticatedAdminSiteScheduleRoute
   '/_authenticated/admin/teachers': typeof AuthenticatedAdminTeachersRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/courses/$id': typeof AuthenticatedAdminCoursesIdRoute
@@ -488,6 +497,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/site-schedule'
     | '/admin/teachers'
+    | '/admin/users'
     | '/admin/'
     | '/admin/blog/$id'
     | '/admin/courses/$id'
@@ -534,6 +544,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/site-schedule'
     | '/admin/teachers'
+    | '/admin/users'
     | '/admin'
     | '/admin/blog/$id'
     | '/admin/courses/$id'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/site-schedule'
     | '/_authenticated/admin/teachers'
+    | '/_authenticated/admin/users'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/courses/$id'
@@ -816,6 +828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/teachers': {
       id: '/_authenticated/admin/teachers'
       path: '/teachers'
@@ -960,6 +979,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSiteScheduleRoute: typeof AuthenticatedAdminSiteScheduleRoute
   AuthenticatedAdminTeachersRoute: typeof AuthenticatedAdminTeachersRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminBlogIdRoute: typeof AuthenticatedAdminBlogIdRoute
   AuthenticatedAdminCoursesIdRoute: typeof AuthenticatedAdminCoursesIdRoute
@@ -982,6 +1002,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSiteScheduleRoute: AuthenticatedAdminSiteScheduleRoute,
   AuthenticatedAdminTeachersRoute: AuthenticatedAdminTeachersRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminBlogIdRoute: AuthenticatedAdminBlogIdRoute,
   AuthenticatedAdminCoursesIdRoute: AuthenticatedAdminCoursesIdRoute,

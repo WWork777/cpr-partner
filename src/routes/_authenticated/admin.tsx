@@ -1,10 +1,11 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, GraduationCap, FolderTree, Inbox, LogOut, FileText, Settings, ShieldCheck, Image as ImageIcon, Ticket, CalendarRange, History, Users, FileBadge, Images, CalendarDays, Award } from "lucide-react";
 import { db } from "@/integrations/database/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/cpr-logo.png";
+import type { PermissionKey } from "@/lib/permissions";
 
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -13,27 +14,30 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; role: string; permissions?: string[] } | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     (async () => {
-      const { data: userData } = await db.auth.getUser();
-      setEmail(userData.user?.email ?? "");
-      if (!userData.user) return setIsAdmin(false);
-      const { data, error } = await db.rpc("has_role", {
-        _user_id: userData.user.id,
-        _role: "admin",
-      });
-      if (error) {
-        console.error(error);
-        setIsAdmin(false);
-      } else {
-        setIsAdmin(!!data);
+      try {
+        const { data: userData } = await db.auth.getUser();
+        setUser(userData.user);
+        setEmail(userData.user?.email ?? "");
+      } finally {
+        setLoaded(true);
       }
     })();
   }, []);
+
+  const isStaff = !!user && (user.role === "admin" || user.role === "manager");
+  const can = (required: PermissionKey | PermissionKey[]) => {
+    if (user?.role === "admin") return true;
+    const permissions = new Set(user?.permissions ?? []);
+    return (Array.isArray(required) ? required : [required]).every((permission) => permissions.has(permission));
+  };
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -42,24 +46,19 @@ function AdminLayout() {
     navigate({ to: "/auth", replace: true });
   }
 
-  if (isAdmin === null) {
+  if (!loaded) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Загрузка…</div>;
   }
 
-  if (!isAdmin) {
+  const required = requiredPermission(location.pathname);
+  if (!isStaff || (required.kind === "permission" && !can(required.value)) || (required.kind === "admin" && user?.role !== "admin")) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md text-center rounded-3xl bg-card p-8 shadow-card">
           <h1 className="text-2xl font-bold">Нет доступа</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            У аккаунта <b>{email}</b> нет роли администратора. Чтобы выдать роль, выполните в Cloud
-            запрос:
+            У аккаунта <b>{email}</b> нет прав для этого раздела.
           </p>
-          <pre className="mt-4 rounded-lg bg-muted p-3 text-left text-xs overflow-auto">
-{`INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users
-WHERE email = '${email || "ваш@email"}';`}
-          </pre>
           <div className="mt-6 flex justify-center gap-2">
             <Button variant="outline" onClick={signOut} className="rounded-full">
               Выйти
@@ -82,22 +81,24 @@ WHERE email = '${email || "ваш@email"}';`}
         </Link>
 
         <nav className="mt-8 space-y-1 text-sm font-medium">
-          <NavLink to="/admin" icon={<LayoutDashboard className="h-4 w-4" />}>Дашборд</NavLink>
-          <NavLink to="/admin/applications" icon={<Inbox className="h-4 w-4" />}>Заявки</NavLink>
-          <NavLink to="/admin/courses" icon={<GraduationCap className="h-4 w-4" />}>Курсы</NavLink>
-          <NavLink to="/admin/schedules" icon={<CalendarRange className="h-4 w-4" />}>Расписание (курсы)</NavLink>
-          <NavLink to="/admin/site-schedule" icon={<CalendarDays className="h-4 w-4" />}>Расписание сайта</NavLink>
-          <NavLink to="/admin/categories" icon={<FolderTree className="h-4 w-4" />}>Категории</NavLink>
-          <NavLink to="/admin/teachers" icon={<Users className="h-4 w-4" />}>Преподаватели</NavLink>
-          <NavLink to="/admin/documents" icon={<FileBadge className="h-4 w-4" />}>Документы организации</NavLink>
-          <NavLink to="/admin/doc-samples" icon={<Award className="h-4 w-4" />}>Образцы документов</NavLink>
-          <NavLink to="/admin/gallery" icon={<Images className="h-4 w-4" />}>Галерея</NavLink>
-          <NavLink to="/admin/banners" icon={<ImageIcon className="h-4 w-4" />}>Баннеры</NavLink>
-          <NavLink to="/admin/promocodes" icon={<Ticket className="h-4 w-4" />}>Промокоды</NavLink>
-          <NavLink to="/admin/blog" icon={<FileText className="h-4 w-4" />}>Блог</NavLink>
-          <NavLink to="/admin/certificates" icon={<ShieldCheck className="h-4 w-4" />}>Удостоверения</NavLink>
-          <NavLink to="/admin/audit" icon={<History className="h-4 w-4" />}>История</NavLink>
-          <NavLink to="/admin/settings" icon={<Settings className="h-4 w-4" />}>Настройки</NavLink>
+          <NavLink to="/admin" required={["applications", "courses"]} can={can} icon={<LayoutDashboard className="h-4 w-4" />}>Дашборд</NavLink>
+          <NavLink to="/admin/applications" required="applications" can={can} icon={<Inbox className="h-4 w-4" />}>Заявки</NavLink>
+          <NavLink to="/admin/courses" required="courses" can={can} icon={<GraduationCap className="h-4 w-4" />}>Курсы</NavLink>
+          <NavLink to="/admin/schedules" required="schedules" can={can} icon={<CalendarRange className="h-4 w-4" />}>Расписание (курсы)</NavLink>
+          <NavLink to="/admin/site-schedule" required="site_schedule" can={can} icon={<CalendarDays className="h-4 w-4" />}>Расписание сайта</NavLink>
+          <NavLink to="/admin/categories" required="categories" can={can} icon={<FolderTree className="h-4 w-4" />}>Категории</NavLink>
+          <NavLink to="/admin/teachers" required="teachers" can={can} icon={<Users className="h-4 w-4" />}>Преподаватели</NavLink>
+          <NavLink to="/admin/documents" required="documents" can={can} icon={<FileBadge className="h-4 w-4" />}>Документы организации</NavLink>
+          <NavLink to="/admin/doc-samples" required="doc_samples" can={can} icon={<Award className="h-4 w-4" />}>Образцы документов</NavLink>
+          <NavLink to="/admin/gallery" required="gallery" can={can} icon={<Images className="h-4 w-4" />}>Галерея</NavLink>
+          <NavLink to="/admin/banners" required="banners" can={can} icon={<ImageIcon className="h-4 w-4" />}>Баннеры</NavLink>
+          <NavLink to="/admin/promocodes" required="promocodes" can={can} icon={<Ticket className="h-4 w-4" />}>Промокоды</NavLink>
+          <NavLink to="/admin/blog" required="blog" can={can} icon={<FileText className="h-4 w-4" />}>Блог</NavLink>
+          <NavLink to="/admin/certificates" required="certificates" can={can} icon={<ShieldCheck className="h-4 w-4" />}>Удостоверения</NavLink>
+          <NavLink to="/admin/reviews" required="reviews" can={can} icon={<ShieldCheck className="h-4 w-4" />}>Отзывы</NavLink>
+          <NavLink to="/admin/audit" required="audit" can={can} icon={<History className="h-4 w-4" />}>История</NavLink>
+          <NavLink to="/admin/settings" required="settings" can={can} icon={<Settings className="h-4 w-4" />}>Настройки</NavLink>
+          {user?.role === "admin" && <NavLink to="/admin/users" icon={<Users className="h-4 w-4" />}>Пользователи</NavLink>}
         </nav>
         <div className="mt-8 pt-4 border-t border-border/60">
           <div className="text-xs text-muted-foreground truncate">{email}</div>
@@ -117,11 +118,16 @@ function NavLink({
   to,
   icon,
   children,
+  required,
+  can,
 }: {
   to: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  required?: PermissionKey | PermissionKey[];
+  can?: (required: PermissionKey | PermissionKey[]) => boolean;
 }) {
+  if (required && can && !can(required)) return null;
   return (
     <Link
       to={to as "/admin"}
@@ -132,4 +138,18 @@ function NavLink({
       {icon} {children}
     </Link>
   );
+}
+
+function requiredPermission(pathname: string): { kind: "admin" } | { kind: "permission"; value: PermissionKey | PermissionKey[] } {
+  if (pathname === "/admin/users") return { kind: "admin" };
+  if (pathname === "/admin" || pathname === "/admin/") return { kind: "permission", value: ["applications", "courses"] };
+  const rules: Array<[string, PermissionKey]> = [
+    ["/admin/applications", "applications"], ["/admin/courses", "courses"], ["/admin/schedules", "schedules"],
+    ["/admin/site-schedule", "site_schedule"], ["/admin/categories", "categories"], ["/admin/teachers", "teachers"],
+    ["/admin/documents", "documents"], ["/admin/doc-samples", "doc_samples"], ["/admin/gallery", "gallery"],
+    ["/admin/banners", "banners"], ["/admin/promocodes", "promocodes"], ["/admin/blog", "blog"],
+    ["/admin/certificates", "certificates"], ["/admin/reviews", "reviews"], ["/admin/audit", "audit"], ["/admin/settings", "settings"],
+  ];
+  const match = rules.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return match ? { kind: "permission", value: match[1] } : { kind: "permission", value: ["applications", "courses"] };
 }

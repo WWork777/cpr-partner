@@ -56,6 +56,31 @@ type Form = {
   sort_order: number;
 };
 
+type CourseListKeys = "title" | "text" | "question" | "answer";
+
+function asText(value: unknown) {
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function normalizeCourseList(value: unknown, primaryKey: CourseListKeys, secondaryKey: CourseListKeys) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return { [primaryKey]: item, [secondaryKey]: "" };
+      }
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+      return {
+        [primaryKey]: asText(record[primaryKey]),
+        [secondaryKey]: asText(record[secondaryKey]),
+      };
+    })
+    .filter((item): item is Record<CourseListKeys, string> =>
+      !!item && (!!item[primaryKey].trim() || !!item[secondaryKey].trim()),
+    );
+}
+
 const empty: Form = {
   slug: "",
   title: "",
@@ -97,40 +122,44 @@ function EditCourse() {
   useEffect(() => {
     if (isNew) return;
     (async () => {
-      const { data, error } = await db.from("courses").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        toast.error(error?.message ?? "Курс не найден");
+      try {
+        const { data, error } = await db.from("courses").select("*").eq("id", id).maybeSingle();
+        if (error || !data) {
+          toast.error(error?.message ?? "Курс не найден");
+          return;
+        }
+        setForm({
+          slug: data.slug,
+          title: data.title,
+          category_id: data.category_id,
+          short_description: data.short_description ?? "",
+          description: data.description ?? "",
+          price: data.price?.toString() ?? "",
+          price_note: data.price_note ?? "",
+          duration: data.duration ?? "",
+          start_date: data.start_date ?? "",
+          format: data.format ?? "",
+          city: data.city ?? "",
+          image_url: data.image_url ?? "",
+          document_sample_url:
+            (data as { document_sample_url?: string | null }).document_sample_url ?? "",
+          document_description:
+            (data as { document_description?: string | null }).document_description ?? "",
+          program_theory: data.program_theory ?? "",
+          program_practice: data.program_practice ?? "",
+          features: normalizeCourseList(data.features, "title", "text") as CourseFeature[],
+          steps: normalizeCourseList(data.steps, "title", "text") as CourseStep[],
+          faqs: normalizeCourseList(data.faqs, "question", "answer") as CourseFaq[],
+          meta_title: (data as { meta_title?: string | null }).meta_title ?? "",
+          meta_description: (data as { meta_description?: string | null }).meta_description ?? "",
+          published: data.published,
+          sort_order: data.sort_order,
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Не удалось загрузить курс");
+      } finally {
         setLoading(false);
-        return;
       }
-      setForm({
-        slug: data.slug,
-        title: data.title,
-        category_id: data.category_id,
-        short_description: data.short_description ?? "",
-        description: data.description ?? "",
-        price: data.price?.toString() ?? "",
-        price_note: data.price_note ?? "",
-        duration: data.duration ?? "",
-        start_date: data.start_date ?? "",
-        format: data.format ?? "",
-        city: data.city ?? "",
-        image_url: data.image_url ?? "",
-        document_sample_url:
-          (data as { document_sample_url?: string | null }).document_sample_url ?? "",
-        document_description:
-          (data as { document_description?: string | null }).document_description ?? "",
-        program_theory: data.program_theory ?? "",
-        program_practice: data.program_practice ?? "",
-        features: (data.features as unknown as CourseFeature[]) ?? [],
-        steps: (data.steps as unknown as CourseStep[]) ?? [],
-        faqs: (data.faqs as unknown as CourseFaq[]) ?? [],
-        meta_title: (data as { meta_title?: string | null }).meta_title ?? "",
-        meta_description: (data as { meta_description?: string | null }).meta_description ?? "",
-        published: data.published,
-        sort_order: data.sort_order,
-      });
-      setLoading(false);
     })();
   }, [id, isNew]);
 
@@ -152,55 +181,53 @@ function EditCourse() {
       return;
     }
     setSaving(true);
-    const features = form.features.filter((f) => f.title.trim() || f.text.trim());
-    const steps = form.steps.filter((s) => s.title.trim() || s.text.trim());
-    const faqs = form.faqs.filter((f) => f.question.trim() || f.answer.trim());
-    const payload = {
-      slug,
-      title,
-      category_id: form.category_id,
-      short_description: form.short_description || null,
-      description: form.description || null,
-      price,
-      price_note: form.price_note || null,
-      duration: form.duration || null,
-      start_date: form.start_date || null,
-      format: form.format || null,
-      city: form.city || null,
-      image_url: form.image_url || null,
-      document_sample_url: form.document_sample_url || null,
-      document_description: form.document_description || null,
-      program_theory: form.program_theory || null,
-      program_practice: form.program_practice || null,
-      features,
-      steps,
-      faqs,
-      meta_title: form.meta_title || null,
-      meta_description: form.meta_description || null,
-      published: form.published,
-      sort_order: form.sort_order,
-    };
-    if (isNew) {
-      const { data, error } = await db.from("courses").insert(payload).select("id").single();
-      if (error) {
-        setSaving(false);
-        return toast.error(error.message);
+    try {
+      const features = normalizeCourseList(form.features, "title", "text");
+      const steps = normalizeCourseList(form.steps, "title", "text");
+      const faqs = normalizeCourseList(form.faqs, "question", "answer");
+      const payload = {
+        slug,
+        title,
+        category_id: form.category_id,
+        short_description: form.short_description || null,
+        description: form.description || null,
+        price,
+        price_note: form.price_note || null,
+        duration: form.duration || null,
+        start_date: form.start_date || null,
+        format: form.format || null,
+        city: form.city || null,
+        image_url: form.image_url || null,
+        document_sample_url: form.document_sample_url || null,
+        document_description: form.document_description || null,
+        program_theory: form.program_theory || null,
+        program_practice: form.program_practice || null,
+        features,
+        steps,
+        faqs,
+        meta_title: form.meta_title || null,
+        meta_description: form.meta_description || null,
+        published: form.published,
+        sort_order: form.sort_order,
+      };
+      if (isNew) {
+        const { data, error } = await db.from("courses").insert(payload).select("id").single();
+        if (error) return toast.error(error.message);
+        toast.success("Курс создан");
+        qc.invalidateQueries({ queryKey: ["admin", "courses"] });
+        qc.invalidateQueries({ queryKey: ["courses", "published"] });
+        navigate({ to: "/admin/courses/$id", params: { id: data.id } });
+      } else {
+        const { error } = await db.from("courses").update(payload).eq("id", id);
+        if (error) return toast.error(error.message);
+        toast.success("Сохранено");
+        qc.invalidateQueries({ queryKey: ["admin", "courses"] });
+        qc.invalidateQueries({ queryKey: ["courses", "published"] });
+        qc.invalidateQueries({ queryKey: ["course", form.slug] });
       }
-      toast.success("Курс создан");
-      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-      qc.invalidateQueries({ queryKey: ["courses", "published"] });
-      setSaving(false);
-      navigate({ to: "/admin/courses/$id", params: { id: data.id } });
-    } else {
-      const { error } = await db.from("courses").update(payload).eq("id", id);
-      if (error) {
-        setSaving(false);
-        return toast.error(error.message);
-      }
-      toast.success("Сохранено");
-      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-      qc.invalidateQueries({ queryKey: ["courses", "published"] });
-      qc.invalidateQueries({ queryKey: ["course", form.slug] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить курс");
+    } finally {
       setSaving(false);
     }
   }

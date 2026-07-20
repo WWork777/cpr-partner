@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, MapPin } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { CallbackModal } from "@/components/site/CallbackModal";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/raspisanie")({
 });
 
 function SchedulePage() {
-  const { data } = useSuspenseQuery(publicScheduleQuery);
+  const { data } = useSuspenseQuery(publicScheduleQuery) as { data: ScheduleRow[] };
 
   const cities = useMemo(() => Array.from(new Set(data.map((r) => r.city))), [data]);
   const [city, setCity] = useState(cities[0] ?? "Красноярск");
@@ -37,6 +37,19 @@ function SchedulePage() {
   const yearRows = cityRows.filter((r) => r.year === year);
   const quarters = Array.from(new Set(yearRows.map((r) => r.quarter))).sort((a, b) => a - b);
   const [quarter, setQuarter] = useState<number>(quarters[0] ?? 1);
+
+  useEffect(() => {
+    if (!cities.includes(city)) setCity(cities[0] ?? "Красноярск");
+  }, [cities, city]);
+
+  useEffect(() => {
+    if (!years.includes(year)) setYear(years[0] ?? new Date().getFullYear());
+  }, [years, year]);
+
+  useEffect(() => {
+    if (!quarters.includes(quarter)) setQuarter(quarters[0] ?? 1);
+  }, [quarters, quarter]);
+
   const rows = yearRows.filter((r) => r.quarter === quarter);
   const setCount = Math.max(3, ...rows.map((row) => resolveCells(row, quarter).length));
 
@@ -193,6 +206,11 @@ function extractMonths(text: string): number[] {
 }
 
 type ScheduleRow = {
+  id: string;
+  city: string;
+  year: number;
+  quarter: number;
+  topic: string;
   sets: string[] | null;
   month1_text: string | null;
   month2_text: string | null;

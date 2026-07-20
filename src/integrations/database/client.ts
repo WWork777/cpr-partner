@@ -17,6 +17,8 @@ type QueryState = {
 type ApiResponse<T = unknown> = { data: T; error: { message: string } | null };
 
 const TOKEN_KEY = "cpr_access_token";
+const REQUEST_TIMEOUT_MS = 20_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
 const listeners = new Set<(event: string, session: unknown) => void>();
 
 function apiUrl(path: string) {
@@ -33,9 +35,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse
   headers.set("content-type", "application/json");
   const accessToken = token();
   if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-  const response = await fetch(apiUrl(path), { ...init, headers });
-  const body = await response.json().catch(() => ({ data: null, error: { message: "Ошибка сервера" } }));
-  return body as ApiResponse<T>;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(apiUrl(path), { ...init, headers, signal: controller.signal });
+    const body = await response.json().catch(() => ({ data: null, error: { message: `Ошибка сервера (${response.status})` } }));
+    if (!response.ok && !body.error) {
+      return { data: null as T, error: { message: `Ошибка сервера (${response.status})` } };
+    }
+    return body as ApiResponse<T>;
+  } catch (error) {
+    const message = error instanceof DOMException && error.name === "AbortError"
+      ? "Сервер не отвечает. Проверьте подключение и попробуйте ещё раз."
+      : "Не удалось связаться с сервером. Попробуйте ещё раз.";
+    return { data: null as T, error: { message } };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 class QueryBuilder<T = any> implements PromiseLike<ApiResponse<T>> {
@@ -76,11 +102,11 @@ class QueryBuilder<T = any> implements PromiseLike<ApiResponse<T>> {
 
 const auth = {
   async getUser() {
-    const response = await request<{ user: { id: string; email: string; role: string } | null }>("/api/auth/session");
+    const response = await request<{ user: { id: string; email: string; role: string; permissions?: string[]; display_name?: string | null } | null }>("/api/auth/session");
     return { data: { user: response.data?.user ?? null }, error: response.error };
   },
   async getSession() {
-    const response = await request<{ user: { id: string; email: string; role: string } | null }>("/api/auth/session");
+    const response = await request<{ user: { id: string; email: string; role: string; permissions?: string[]; display_name?: string | null } | null }>("/api/auth/session");
     const user = response.data?.user ?? null;
     return { data: { session: user && token() ? { access_token: token(), user } : null }, error: response.error };
   },
@@ -99,6 +125,24 @@ const auth = {
       listeners.forEach((listener) => listener("SIGNED_IN", response.data));
     }
     return { data: response.data ?? { user: null, session: null }, error: response.error };
+  },
+  async requestPasswordReset(email: string) {
+    return request<{ ok: boolean }>("/api/auth/request-password-reset", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+  async resetPassword(tokenValue: string, password: string) {
+    return request<{ ok: boolean }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token: tokenValue, password }),
+    });
+  },
+  async updateEmail(email: string, currentPassword: string) {
+    return request<{ email: string }>("/api/auth/update-email", {
+      method: "POST",
+      body: JSON.stringify({ email, currentPassword }),
+    });
   },
   async signOut() {
     const response = await request<null>("/api/auth/logout", { method: "POST", body: "{}" });
@@ -123,9 +167,19 @@ const storage = {
         const headers = new Headers();
         const accessToken = token();
         if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-        const response = await fetch(apiUrl("/api/storage"), { method: "POST", headers, body: form });
-        const body = await response.json() as ApiResponse<{ path: string }>;
-        return { data: body.data, error: body.error };
+        let response: Response;
+        try {
+          response = await fetchWithTimeout(apiUrl("/api/storage"), { method: "POST", headers, body: form }, UPLOAD_TIMEOUT_MS);
+        } catch (error) {
+          const message = error instanceof DOMException && error.name === "AbortError"
+            ? "Загрузка занимает слишком долго. Проверьте размер файла и подключение."
+            : "Не удалось загрузить файл. Попробуйте ещё раз.";
+          return { data: null, error: { message } };
+        }
+        const body = await response.json().catch(() => ({ data: null, error: { message: `Ошибка загрузки (${response.status})` } })) as ApiResponse<{ path: string }>;
+        return response.ok
+          ? { data: body.data, error: body.error }
+          : { data: null, error: body.error ?? { message: `Ошибка загрузки (${response.status})` } };
       },
       async createSignedUrl(path: string, _expiresIn: number) {
         return { data: { signedUrl: `${apiUrl("/uploads")}/${path.replace(/^\/+/, "")}` }, error: null };
@@ -134,10 +188,23 @@ const storage = {
   },
 };
 
+const adminApi = {
+  async listUsers() {
+    return request<unknown[]>("/api/admin/users");
+  },
+  async createUser(payload: unknown) {
+    return request<{ id: string }>("/api/admin/users", { method: "POST", body: JSON.stringify(payload) });
+  },
+  async updateUser(id: string, payload: unknown) {
+    return request<{ id: string }>(`/api/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) });
+  },
+};
+
 export const db = {
   from: <T = any>(table: string) => new QueryBuilder<T>(table),
   auth,
   storage,
+  admin: adminApi,
   async rpc(name: string, args: { _user_id?: string; _role?: string }) {
     if (name !== "has_role") return { data: null, error: { message: "Unknown function" } };
     const response = await request<boolean>("/api/auth/has-role", { method: "POST", body: JSON.stringify({ userId: args._user_id, role: args._role }) });

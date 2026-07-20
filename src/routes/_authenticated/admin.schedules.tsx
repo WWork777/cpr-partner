@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { db } from "@/integrations/database/client";
@@ -9,6 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminCoursesQuery } from "@/lib/queries";
 import { toast } from "sonner";
+
+type CourseOption = { id: string; title: string };
+type ScheduleRow = {
+  id: string;
+  course_id: string;
+  start_date: string;
+  end_date?: string | null;
+  format?: string | null;
+  city?: string | null;
+  seats_total?: number | null;
+  seats_left?: number | null;
+  price?: number | null;
+};
 
 export const Route = createFileRoute("/_authenticated/admin/schedules")({
   component: SchedulesAdmin,
@@ -40,10 +53,41 @@ function SchedulesAdmin() {
     price: "",
   });
 
-  async function add(e: React.FormEvent) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  function resetDraft() {
+    setDraft({
+      course_id: "",
+      start_date: "",
+      end_date: "",
+      format: "Очно",
+      city: "Красноярск",
+      seats_total: "",
+      seats_left: "",
+      price: "",
+    });
+    setEditingId(null);
+  }
+
+  function editSchedule(schedule: ScheduleRow) {
+    setEditingId(schedule.id);
+    setDraft({
+      course_id: schedule.course_id ?? "",
+      start_date: schedule.start_date ?? "",
+      end_date: schedule.end_date ?? "",
+      format: schedule.format ?? "",
+      city: schedule.city ?? "",
+      seats_total: schedule.seats_total == null ? "" : String(schedule.seats_total),
+      seats_left: schedule.seats_left == null ? "" : String(schedule.seats_left),
+      price: schedule.price == null ? "" : String(schedule.price),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.course_id || !draft.start_date) return toast.error("Курс и дата старта обязательны");
-    const { error } = await db.from("course_schedules").insert({
+    const payload = {
       course_id: draft.course_id,
       start_date: draft.start_date,
       end_date: draft.end_date || null,
@@ -53,10 +97,14 @@ function SchedulesAdmin() {
       seats_left: draft.seats_left ? Number(draft.seats_left) : null,
       price: draft.price ? Number(draft.price) : null,
       is_active: true,
-    });
+    };
+    const { error } = editingId
+      ? await db.from("course_schedules").update(payload).eq("id", editingId)
+      : await db.from("course_schedules").insert(payload);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin", "schedules"] });
-    toast.success("Поток добавлен");
+    toast.success(editingId ? "Поток обновлён" : "Поток добавлен");
+    resetDraft();
   }
 
   async function remove(id: string) {
@@ -77,7 +125,7 @@ function SchedulesAdmin() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null });
       if (!rows.length) return toast.error("Файл пустой");
-      const courseMap = new Map((courses ?? []).map((c) => [c.title.toLowerCase().trim(), c.id]));
+      const courseMap = new Map((courses ?? []).map((c: CourseOption) => [c.title.toLowerCase().trim(), c.id]));
       const toDate = (v: unknown): string | null => {
         if (!v) return null;
         if (v instanceof Date) return v.toISOString().slice(0, 10);
@@ -129,12 +177,12 @@ function SchedulesAdmin() {
           </Button>
         </div>
       </div>
-      <form onSubmit={add} className="mt-6 grid gap-3 rounded-2xl bg-card p-5 shadow-soft md:grid-cols-4">
+      <form onSubmit={save} className="mt-6 grid gap-3 rounded-2xl bg-card p-5 shadow-soft md:grid-cols-4">
         <div className="md:col-span-2">
           <Label>Курс</Label>
           <select value={draft.course_id} onChange={(e) => setDraft({ ...draft, course_id: e.target.value })} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
             <option value="">— выбрать —</option>
-            {(courses ?? []).map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            {(courses ?? []).map((c: CourseOption) => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         </div>
         <div><Label>Старт</Label><Input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} /></div>
@@ -144,7 +192,13 @@ function SchedulesAdmin() {
         <div><Label>Мест всего</Label><Input type="number" value={draft.seats_total} onChange={(e) => setDraft({ ...draft, seats_total: e.target.value })} /></div>
         <div><Label>Осталось</Label><Input type="number" value={draft.seats_left} onChange={(e) => setDraft({ ...draft, seats_left: e.target.value })} /></div>
         <div><Label>Цена</Label><Input type="number" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></div>
-        <div className="md:col-span-4"><Button type="submit" className="rounded-full bg-gradient-teal"><Plus className="h-4 w-4" /> Добавить поток</Button></div>
+        <div className="md:col-span-4 flex gap-2">
+          <Button type="submit" className="rounded-full bg-gradient-teal">
+            {editingId ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {editingId ? "Сохранить изменения" : "Добавить поток"}
+          </Button>
+          {editingId && <Button type="button" variant="outline" className="rounded-full" onClick={resetDraft}><X className="h-4 w-4" /> Отмена</Button>}
+        </div>
       </form>
 
       <div className="mt-6 rounded-2xl bg-card shadow-soft overflow-hidden">
@@ -155,7 +209,7 @@ function SchedulesAdmin() {
             <th className="text-left p-3">Места</th><th className="text-left p-3">Цена</th><th></th>
           </tr></thead>
           <tbody>
-            {(data ?? []).map((s) => (
+            {(data ?? []).map((s: ScheduleRow) => (
               <tr key={s.id} className="border-t border-border">
                 <td className="p-3">{(s as { courses?: { title?: string } }).courses?.title ?? "—"}</td>
                 <td className="p-3">{new Date(s.start_date).toLocaleDateString("ru-RU")}{s.end_date ? ` — ${new Date(s.end_date).toLocaleDateString("ru-RU")}` : ""}</td>
@@ -163,7 +217,12 @@ function SchedulesAdmin() {
                 <td className="p-3">{s.city ?? "—"}</td>
                 <td className="p-3">{s.seats_left ?? "—"}{s.seats_total ? ` / ${s.seats_total}` : ""}</td>
                 <td className="p-3">{s.price != null ? `${s.price} ₽` : "—"}</td>
-                <td className="p-3 text-right"><Button variant="ghost" size="sm" onClick={() => remove(s.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button></td>
+                <td className="p-3 text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => editSchedule(s)} aria-label="Редактировать поток"><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => remove(s.id)} aria-label="Удалить поток" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </td>
               </tr>
             ))}
             {(data ?? []).length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Потоков пока нет</td></tr>}

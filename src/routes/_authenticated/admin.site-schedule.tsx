@@ -36,8 +36,9 @@ const MIN_SET_COUNT = 3;
 
 function SiteScheduleAdmin() {
   const qc = useQueryClient();
-  const { data } = useQuery(adminScheduleQuery);
+  const { data } = useQuery(adminScheduleQuery) as { data: Row[] | undefined };
   const [draft, setDraft] = useState<Partial<Row> | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [filterCity, setFilterCity] = useState<string>("all");
@@ -73,27 +74,36 @@ function SiteScheduleAdmin() {
   }), [filtered, sortMode]);
 
   async function save(row: Partial<Row>) {
-    if (!row.topic?.trim()) return toast.error("Название программы обязательно");
-    const payload = {
-      city: row.city?.trim() || "Красноярск",
-      year: Number(row.year ?? new Date().getFullYear()),
-      quarter: Number(row.quarter ?? 1),
-      topic: row.topic.trim(),
-      sets: getSets(row).map((value) => value.trim()),
-      month1_text: row.month1_text || null,
-      month2_text: row.month2_text || null,
-      month3_text: row.month3_text || null,
-      sort_order: row.sort_order ?? 0,
-      is_published: row.is_published ?? true,
-    };
-    const { error } = row.id
-      ? await db.from("public_schedule").update(payload).eq("id", row.id)
-      : await db.from("public_schedule").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success("Сохранено");
-    setDraft(null);
-    qc.invalidateQueries({ queryKey: ["admin", "public_schedule"] });
-    qc.invalidateQueries({ queryKey: ["public_schedule"] });
+    const topic = typeof row.topic === "string" ? row.topic.trim() : "";
+    if (!topic) return toast.error("Название программы обязательно");
+    if (saving) return;
+    setSaving(true);
+    try {
+      const payload = {
+        city: typeof row.city === "string" ? row.city.trim() || "Красноярск" : "Красноярск",
+        year: Number(row.year ?? new Date().getFullYear()),
+        quarter: Number(row.quarter ?? 1),
+        topic,
+        sets: getSets(row),
+        month1_text: row.month1_text || null,
+        month2_text: row.month2_text || null,
+        month3_text: row.month3_text || null,
+        sort_order: row.sort_order ?? 0,
+        is_published: row.is_published ?? true,
+      };
+      const { error } = row.id
+        ? await db.from("public_schedule").update(payload).eq("id", row.id)
+        : await db.from("public_schedule").insert(payload);
+      if (error) return toast.error(error.message);
+      toast.success("Сохранено");
+      setDraft(null);
+      qc.invalidateQueries({ queryKey: ["admin", "public_schedule"] });
+      qc.invalidateQueries({ queryKey: ["public_schedule"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить расписание");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(id: string) {
@@ -262,7 +272,7 @@ function SiteScheduleAdmin() {
             </label>
             <div className="flex gap-2 ml-auto">
               <Button variant="outline" onClick={() => setDraft(null)} className="rounded-full">Отмена</Button>
-              <Button onClick={() => save(draft)} className="rounded-full bg-gradient-teal"><Save className="h-4 w-4" /> Сохранить</Button>
+              <Button onClick={() => save(draft)} disabled={saving} className="rounded-full bg-gradient-teal"><Save className="h-4 w-4" /> {saving ? "Сохраняем…" : "Сохранить"}</Button>
             </div>
           </div>
         </div>
@@ -292,7 +302,7 @@ function SiteScheduleAdmin() {
                 <td className="p-3">{r.is_published ? "✓" : "—"}</td>
                 <td className="p-3 text-right whitespace-nowrap">
                   <Button size="sm" variant="outline" onClick={() => setDraft(r)}>Изменить</Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(r.id)}>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => r.id && remove(r.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </td>
@@ -314,8 +324,11 @@ function romanToInt(s: string): number {
 }
 
 function getSets(row: Partial<Row> | null | undefined): string[] {
-  if (Array.isArray(row?.sets) && row.sets.length > 0) return row.sets;
-  const legacy = [row?.month1_text ?? "", row?.month2_text ?? "", row?.month3_text ?? ""];
+  if (Array.isArray(row?.sets) && row.sets.length > 0) {
+    return row.sets.map((value) => typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim());
+  }
+  const legacy = [row?.month1_text, row?.month2_text, row?.month3_text]
+    .map((value) => typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim());
   return legacy.some(Boolean) ? legacy : Array(MIN_SET_COUNT).fill("");
 }
 

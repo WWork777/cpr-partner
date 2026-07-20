@@ -14,7 +14,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { db } from "@/integrations/database/client";
 import { Toaster } from "@/components/ui/sonner";
-import { YandexMetrika } from "@/components/site/YandexMetrika";
 import { PromoPopup } from "@/components/site/PromoPopup";
 import { CookieBanner } from "@/components/site/CookieBanner";
 import logoAsset from "@/assets/cpr-logo.png";
@@ -138,7 +137,7 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: sub } = db.auth.onAuthStateChange((event) => {
+    const { data: sub } = db.auth.onAuthStateChange((event: string) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
@@ -152,7 +151,6 @@ function RootComponent() {
       <PromoPopup />
       <CookieBanner />
       <Toaster richColors position="top-right" />
-      <YandexMetrika />
     </QueryClientProvider>
   );
 }

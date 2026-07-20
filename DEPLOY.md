@@ -112,6 +112,7 @@ server {
 - [ ] PostgreSQL доступен по `DATABASE_URL`
 - [ ] Каталог `UPLOADS_DIR` доступен пользователю `www-data`
 - [ ] В PostgreSQL создан пользователь с ролью `admin`
+- [ ] Для восстановления пароля заполнены `APP_URL`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
 - [ ] nginx раздаёт `/robots.txt` и `/sitemap.xml` (это маршруты приложения)
 - [ ] Настроены бэкапы Postgres (`pg_dump` в cron)
 
@@ -125,6 +126,9 @@ bun run preview            # локально проверить прод-сбо
 node .output/server/index.mjs
 psql $DATABASE_URL -f server/schema.sql
 ```
+
+После обновления схемы эта же команда добавит роли менеджеров, права пользователей
+и таблицу одноразовых ссылок восстановления пароля. Повторный запуск безопасен.
 
 Логин админа сейчас: `admin@cpr-partner.local` / `CprAdmin!2026`
 (после миграции на свою БД пересоздать через `auth.users` + `user_roles`).
