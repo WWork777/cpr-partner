@@ -24,7 +24,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   courses: "Курсы",
   schedules: "Расписание курсов",
   site_schedule: "Расписание сайта",
-  categories: "Категории",
+  categories: "Направления",
   teachers: "Преподаватели",
   documents: "Документы организации",
   doc_samples: "Образцы документов",

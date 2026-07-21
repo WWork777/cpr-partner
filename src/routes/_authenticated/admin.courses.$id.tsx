@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { db } from "@/integrations/database/client";
@@ -26,7 +28,12 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { ItemListEditor } from "@/components/admin/ItemListEditor";
 import { slugify } from "@/lib/slugify";
 
+const searchSchema = z.object({
+  categoryId: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/courses/$id")({
+  validateSearch: zodValidator(searchSchema),
   component: EditCourse,
 });
 
@@ -109,18 +116,25 @@ const empty: Form = {
 
 function EditCourse() {
   const { id } = Route.useParams();
+  const { categoryId } = Route.useSearch();
   const isNew = id === "new";
   const navigate = useNavigate();
   const qc = useQueryClient();
   const categories = useQuery(categoriesQuery);
-  const [form, setForm] = useState<Form>(empty);
+  const [form, setForm] = useState<Form>(() => ({ ...empty, category_id: isNew && categoryId ? categoryId : null }));
   const [autoSlug, setAutoSlug] = useState(isNew);
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isNew) return;
+    if (isNew) {
+      setForm((current) => ({
+        ...current,
+        category_id: current.category_id || categoryId || null,
+      }));
+      return;
+    }
     (async () => {
       try {
         const { data, error } = await db.from("courses").select("*").eq("id", id).maybeSingle();
@@ -161,7 +175,7 @@ function EditCourse() {
         setLoading(false);
       }
     })();
-  }, [id, isNew]);
+  }, [categoryId, id, isNew]);
 
   function set<K extends keyof Form>(k: K, v: Form[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -280,13 +294,13 @@ function EditCourse() {
               />
             </Field>
 
-            <Field label="Категория">
+            <Field label="Направление">
               <Select
                 value={form.category_id ?? ""}
                 onValueChange={(v) => set("category_id", v || null)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Без категории" />
+                  <SelectValue placeholder="Без направления" />
                 </SelectTrigger>
                 <SelectContent>
                   {(categories.data ?? []).map((c) => (

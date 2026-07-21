@@ -86,7 +86,7 @@ function CoursesAdmin() {
       .update({ category_id: bulkCat })
       .in("id", [...selected]);
     if (error) return toast.error(error.message);
-    toast.success("Категория обновлена");
+    toast.success("Направление обновлено");
     setSelected(new Set());
     qc.invalidateQueries({ queryKey: ["admin", "courses"] });
   }
@@ -169,16 +169,16 @@ function CoursesAdmin() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Поиск по названию, slug или категории"
+            placeholder="Поиск по названию, slug или направлению"
             className="pl-9"
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger>
-            <SelectValue placeholder="Все категории" />
+            <SelectValue placeholder="Все направления" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все категории</SelectItem>
+            <SelectItem value="all">Все направления</SelectItem>
             {(cats ?? []).map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name}
@@ -210,7 +210,7 @@ function CoursesAdmin() {
           <div className="flex items-center gap-2">
             <Select value={bulkCat} onValueChange={setBulkCat}>
               <SelectTrigger className="h-9 w-[200px] bg-background text-foreground">
-                <SelectValue placeholder="Сменить категорию…" />
+                <SelectValue placeholder="Сменить направление…" />
               </SelectTrigger>
               <SelectContent>
                 {(cats ?? []).map((c) => (
@@ -278,7 +278,7 @@ function CoursesAdmin() {
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate">{c.title}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {c.categories?.name ?? "Без категории"} · /{c.slug}
+                    {c.categories?.name ?? "Без направления"} · /{c.slug}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

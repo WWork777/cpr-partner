@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import directions from "@/data/directions.json";
 
 // TODO: replace with project URL once a domain is set.
 const BASE_URL = "";
@@ -33,25 +32,26 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         let coursePaths: string[] = [];
         let blogPaths: string[] = [];
+        let directionPaths: string[] = [];
         try {
           const { queryDatabase } = await import("@/lib/local-db.server");
-          const [{ rows: courses }, { rows: posts }] = await Promise.all([
+          const [{ rows: courses }, { rows: posts }, { rows: directions }] = await Promise.all([
             queryDatabase<{ slug: string }>("SELECT slug FROM courses WHERE published = true"),
             queryDatabase<{ slug: string }>("SELECT slug FROM blog_posts WHERE published = true"),
+            queryDatabase<{ slug: string }>(
+              "SELECT DISTINCT categories.slug FROM categories INNER JOIN courses ON courses.category_id = categories.id WHERE courses.published = true ORDER BY categories.slug",
+            ),
           ]);
           coursePaths = courses.map((c) => `/courses/${c.slug}`);
           blogPaths = posts.map((p) => `/blog/${p.slug}`);
+          directionPaths = directions.map((d) => `/napravleniya/${d.slug}`);
         } catch {
           // tolerate failures during SSR build
         }
 
-        const dirPaths = (directions as { slug: string }[]).map(
-          (d) => `/napravleniya/${d.slug}`,
-        );
-
         const urls = [
           ...staticPaths.map((s) => entry(s.p, s.c, s.pr)),
-          ...dirPaths.map((p) => entry(p, "weekly", "0.85")),
+          ...directionPaths.map((p) => entry(p, "weekly", "0.85")),
           ...coursePaths.map((p) => entry(p, "weekly", "0.7")),
           ...blogPaths.map((p) => entry(p, "weekly", "0.6")),
         ];

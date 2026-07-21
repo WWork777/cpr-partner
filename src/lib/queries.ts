@@ -13,6 +13,20 @@ export const categoriesQuery = queryOptions({
   },
 });
 
+export const categoryBySlugQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["categories", slug],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("categories")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
 export const publishedCoursesQuery = queryOptions({
   queryKey: ["courses", "published"],
   queryFn: async () => {
@@ -25,6 +39,22 @@ export const publishedCoursesQuery = queryOptions({
     return data ?? [];
   },
 });
+
+export const publishedCoursesByCategoryQuery = (categoryId: string) =>
+  queryOptions({
+    queryKey: ["courses", "published", "category", categoryId],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("courses")
+        .select("id, slug, title, short_description, price, duration, image_url, category_id")
+        .eq("category_id", categoryId)
+        .eq("published", true)
+        .order("sort_order")
+        .limit(100);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
 export const courseBySlugQuery = (slug: string) =>
   queryOptions({
@@ -45,7 +75,7 @@ export const adminCoursesQuery = queryOptions({
   queryFn: async () => {
     const { data, error } = await db
       .from("courses")
-      .select("*, categories(name)")
+      .select("*, categories(name, slug)")
       .order("sort_order");
     if (error) throw error;
     return data ?? [];

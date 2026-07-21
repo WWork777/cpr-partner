@@ -86,7 +86,7 @@ function AdminLayout() {
           <NavLink to="/admin/courses" required="courses" can={can} icon={<GraduationCap className="h-4 w-4" />}>Курсы</NavLink>
           <NavLink to="/admin/schedules" required="schedules" can={can} icon={<CalendarRange className="h-4 w-4" />}>Расписание (курсы)</NavLink>
           <NavLink to="/admin/site-schedule" required="site_schedule" can={can} icon={<CalendarDays className="h-4 w-4" />}>Расписание сайта</NavLink>
-          <NavLink to="/admin/categories" required="categories" can={can} icon={<FolderTree className="h-4 w-4" />}>Категории</NavLink>
+          <NavLink to="/admin/categories" required="categories" can={can} icon={<FolderTree className="h-4 w-4" />}>Направления</NavLink>
           <NavLink to="/admin/teachers" required="teachers" can={can} icon={<Users className="h-4 w-4" />}>Преподаватели</NavLink>
           <NavLink to="/admin/documents" required="documents" can={can} icon={<FileBadge className="h-4 w-4" />}>Документы организации</NavLink>
           <NavLink to="/admin/doc-samples" required="doc_samples" can={can} icon={<Award className="h-4 w-4" />}>Образцы документов</NavLink>
